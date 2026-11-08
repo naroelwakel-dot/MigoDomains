@@ -38,5 +38,9 @@
 
     var note2 = document.getElementById("guardNote");
     if (note2) note2.hidden = true;
+
+    /* العناصر اللي تظهر للمسجّلين بس */
+    var only = document.querySelectorAll("[data-auth-only]");
+    Array.prototype.slice.call(only).forEach(function (n) { n.hidden = false; });
   });
 })();
