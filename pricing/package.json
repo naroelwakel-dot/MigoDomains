@@ -1,0 +1,10 @@
+{
+  "name": "migo-domains-pricing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "محرك التسعير لـ Migo Domains — بدون أي مكتبات خارجية",
+  "scripts": {
+    "test": "node --test test/"
+  }
+}
