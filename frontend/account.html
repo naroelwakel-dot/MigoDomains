@@ -35,6 +35,16 @@
       </nav>
       <h1 class="h2 mt-4">حسابي</h1>
 
+      <div id="guardNote" class="card mt-4" hidden style="background:var(--surface-2)">
+        <strong style="font-size:var(--fs-sm)">وضع تجريبي</strong>
+        <p class="muted mt-2" style="font-size:var(--fs-sm)">تسجيل الدخول لسه غير مُهيّأ، فالصفحة دي بتعرض بيانات تجريبية. لما يتم الربط، هتطلب تسجيل دخول الأول.</p>
+      </div>
+
+      <div class="row-between wrap-flex mt-4" data-auth-only hidden>
+        <span class="muted" style="font-size:var(--fs-sm)">مسجّل دخول: <span class="mono" data-user-email></span></span>
+        <button class="btn btn-ghost btn-sm" type="button" data-signout>خروج</button>
+      </div>
+
       <div class="mt-5" data-tabs>
         <div class="tabs" role="tablist" aria-label="أقسام الحساب">
           <button class="tab" role="tab" data-tab="domains" aria-selected="true">دوميناتي</button>
@@ -85,5 +95,6 @@
   <div class="scrim" data-dismiss></div>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/account.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
 </body>
 </html>
