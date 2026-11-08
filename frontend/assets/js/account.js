@@ -28,7 +28,7 @@
   fill("#domBody", DOMAINS.map(function (d) {
     return "<tr><td class=\"mono\">" + d.name + "</td><td>" + pill(d.status, d.label) + "</td>" +
       "<td>" + d.renew + "</td><td>" + d.auto + "</td>" +
-      '<td><button class="btn btn-sm" data-toast="إدارة ' + d.name + ' (تجريبي)">إدارة</button></td></tr>';
+      '<td><a class="btn btn-sm" href="manage.html">إدارة</a></td></tr>';
   }).join(""));
 
   fill("#renBody", DOMAINS.filter(function (d) { return d.status !== "info"; }).map(function (d) {
