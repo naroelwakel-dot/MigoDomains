@@ -10,3 +10,12 @@
 > ```
 >
 > 72 اختبار ناجح، والتفاصيل مسجّلة في `../docs/TEST_REPORT.md`.
+>
+> اختبارات **المزوّد الوهمي** موجودة جوه وحدتها في `../providers/test/`:
+>
+> ```bash
+> node --test providers/test/*.test.js
+> ```
+>
+> 66 اختبار ناجح. **تنبيه:** على Node 22، صيغة المجلد `node --test providers/test/`
+> لوحدها بتفشل — لازم الـglob.
