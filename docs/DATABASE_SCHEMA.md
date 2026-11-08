@@ -1,10 +1,13 @@
 # مخطط قاعدة البيانات — Migo Domains
 
-> **الحالة: NOT_IMPLEMENTED** — يُبنى في المرحلة 2 (Supabase PostgreSQL).
+> **الحالة: DOCUMENTED · NOT RUN** — المخطط **اتكتب فعليًا كـmigrations** في `database/migrations/` (11 ملفًا، 29 جدول + view واحد)، ولسه **ما اتنفّذش** على أي قاعدة بيانات. التنفيذ محتاج **APPROVAL REQUIRED**.
+> **الجرد الكامل ومصفوفة RLS:** `docs/DATABASE_MIGRATIONS.md`.
 
 ## الجداول المستهدفة (17)
 
 `domain_tlds` · `providers` · `provider_costs` · `pricing_rules` · `pricing_overrides` · `fx_rates` · `dns_plans` · `domain_quotes` · `customers` · `customer_domains` · `domain_orders` · `payments` · `renewals` · `domain_transfers` · `dns_records` · `audit_logs` · `system_settings`
+
+> **الفرق بين القائمة دي والـmigrations:** القائمة دي 17 جدولًا، والـmigrations بتغطّي **29 جدولًا + view واحد** = الـ17 دول (بعد إعادة تسمية/تقسيم) **زائد** كيانات من `docs/phase-zero/DATABASE_ARCHITECTURE.md` وتوثيق المصادقة. التفاصيل والجدول المطابَق في `docs/DATABASE_MIGRATIONS.md` قسم 3.
 
 ## قواعد إلزامية
 
