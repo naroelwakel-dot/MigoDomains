@@ -53,8 +53,8 @@ EXECUTIVE_SUMMARY · ENVIRONMENT_AUDIT · REPOSITORY_ISOLATION · PROVIDER_COMPA
 
 ## الخدمات/المفاتيح المطلوبة من صاحب المشروع
 
-- **A معتمد:** إنشاء المستودع (لسه محتاج تحديد الظهور public/private + مراجعة الملفات قبل الرفع).
-- **B معتمد:** مشروع Supabase مستقل (لسه محتاج عرض الإعدادات وتأكيد الاستقلال قبل الإنشاء).
+- **A اتنفّذ:** مستودع `naroelwakel-dot/MigoDomains` (public) — الملفات اترفعت على `main`.
+- **B اتنفّذ:** مشروع Supabase مستقل `migo-domains` (`ulbvpyanwbxfvpxjovkn`) — فاضي، بلا جداول.
 - **C معتمد:** المزوّد = **Openprovider** (فتح الحساب/أي رسوم = موافقة منفصلة).
 - اتصال Cloudflare (D) — لسه معلّق.
 - لاحقًا: أي حساب مزوّد حقيقي يتطلب دفعًا = **REQUIRES_APPROVAL**.
