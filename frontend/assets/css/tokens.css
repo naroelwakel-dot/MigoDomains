@@ -1,0 +1,76 @@
+/* ==========================================================================
+   Migo Domains - Design Tokens
+   المصدر: docs/DESIGN_SYSTEM.md - التغيير هنا لازم يتحوّل هناك كمان.
+   ========================================================================== */
+
+:root {
+  /* --- الألوان --- */
+  --bg: #0A0B0D;            /* خلفية الصفحة، أسود فحمي */
+  --surface-1: #121417;     /* بطاقات ولوحات */
+  --surface-2: #191C20;     /* رؤوس الجداول وعناصر مرفوعة */
+  --surface-3: #1F2328;     /* حالة Hover للعناصر المرفوعة */
+  --row-hover: #15181C;     /* خلفية صف الجدول عند المرور */
+  --on-accent: #04211F;     /* نص/أيقونة فوق الـ Accent (مينت فاتح) */
+  --line: #24282E;          /* حدود هادئة */
+  --line-strong: #31363D;   /* حدود عند التركيز */
+  --metal-1: #8B95A1;       /* رمادي معدني للأيقونات الثانوية */
+  --text-1: #F2F5F7;        /* نص أساسي */
+  --text-2: #A7B0B8;        /* نص ثانوي */
+  --text-3: #6E7882;        /* نص خامل */
+  --accent: #3FD0C9;        /* Accent سماوي هادئ */
+  --accent-strong: #2BB3AD; /* Hover / نشط */
+  --accent-weak: #123230;   /* تظليل هادئ للـ Accent */
+  --ok: #34D399;
+  --warn: #F5B942;
+  --danger: #F87171;
+  --info: #7FB2D8;
+
+  /* --- الخطوط --- */
+  --font-ar: "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --font-en: "Inter", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* --- مقاسات الخط --- */
+  --fs-display: 40px;
+  --fs-display-sm: 32px;
+  --fs-h1: 28px;
+  --fs-h2: 22px;
+  --fs-h3: 18px;
+  --fs-body: 16px;
+  --fs-sm: 14px;
+  --fs-xs: 12px;
+
+  /* --- أوزان الخط --- */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-bold: 700;
+  --fw-black: 800;
+
+  /* --- المسافات --- */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 64px;
+
+  /* --- الأنصاف --- */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* --- الحدود والظل --- */
+  --border: 1px solid var(--line);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .4);
+
+  /* --- الحاويات --- */
+  --wrap: 1120px;
+  --wrap-wide: 1440px;
+
+  /* --- الحركة --- */
+  --dur: 160ms;
+  --ease: ease-out;
+}
