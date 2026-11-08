@@ -79,6 +79,30 @@
 
     isSignedIn: function () { var s = read(); return !!(s && s.access_token); },
 
+    /* هل المستخدم الحالي إداري؟ بينادي public.is_admin() على قاعدة البيانات.
+       بترجّع false لو مفيش جلسة، وبترمي خطأ لو الدالة لسه مش موجودة. */
+    isAdmin: function () {
+      var s = read();
+      if (!isConfigured()) {
+        return Promise.reject(new Error("الإعدادات ناقصة: مفيش رابط مشروع ولا مفتاح عام."));
+      }
+      if (!s || !s.access_token) return Promise.resolve(false);
+      return fetch(base() + "/rest/v1/rpc/is_admin", {
+        method: "POST",
+        headers: {
+          "apikey": cfg().anonKey,
+          "Authorization": "Bearer " + s.access_token,
+          "Content-Type": "application/json"
+        },
+        body: "{}"
+      }).then(function (r) {
+        if (!r.ok) throw new Error("تعذّر التحقق من صلاحية الإدارة (HTTP " + r.status + ")");
+        return r.text().then(function (t) {
+          try { return JSON.parse(t) === true; } catch (e) { return false; }
+        });
+      });
+    },
+
     signOut: function () {
       var s = read();
       drop();
