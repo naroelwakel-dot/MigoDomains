@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>لوحة الإدارة - Migo Domains</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=Inter:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
+  <a class="skip" href="#main">تخطَّ إلى المحتوى</a>
+
+  <header class="masthead">
+    <div class="wrap-wide bar">
+      <a class="brand" href="index.html"><span class="dot" aria-hidden="true"></span> Migo Domains <span class="dim" style="font-weight:var(--fw-regular)">/ الإدارة</span></a>
+      <nav class="nav" aria-label="تنقل الإدارة">
+        <a href="index.html">واجهة العميل</a>
+        <button class="btn btn-sm" data-dir-toggle type="button" aria-pressed="false">EN / LTR</button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="section">
+    <div class="wrap-wide">
+      <div class="admin-head">
+        <h1 class="h2">لوحة الإدارة</h1>
+        <span class="pill warn">بيانات تجريبية</span>
+      </div>
+
+      <div class="admin-shell">
+        <!-- التنقل الجانبي: بيانات القسم في data-apanel -->
+        <nav class="admin-side" aria-label="أقسام الإدارة">
+          <a href="#overview" data-apanel="overview">نظرة عامة</a>
+          <a href="#domains" data-apanel="domains">الدومينات</a>
+          <a href="#orders" data-apanel="orders">الطلبات</a>
+          <a href="#customers" data-apanel="customers">العملاء</a>
+          <a href="#pricing" data-apanel="pricing">التسعير</a>
+          <a href="#provider" data-apanel="provider">المزوّد / Sandbox</a>
+          <a href="#audit" data-apanel="audit">السجلات</a>
+          <a href="#settings" data-apanel="settings">الإعدادات</a>
+        </nav>
+
+        <div>
+          <!-- نظرة عامة -->
+          <section class="admin-section" data-apage="overview">
+            <div class="admin-cards" id="kpis"></div>
+            <p class="dim mt-4" style="font-size:var(--fs-xs)">الأرقام دي توضيحية بالكامل. مفيش أي بيانات حقيقية ولا اتصال بقاعدة بيانات.</p>
+          </section>
+
+          <!-- الدومينات -->
+          <section class="admin-section" data-apage="domains" hidden>
+            <h3 class="h3">الدومينات</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>الدومين</th><th>العميل</th><th>الحالة</th></tr></thead>
+                <tbody id="admDomains"></tbody>
+              </table>
+            </div>
+            <p class="swipe-hint">اسحب الجدول أفقيًا لرؤية كل الأعمدة.</p>
+          </section>
+
+          <!-- الطلبات -->
+          <section class="admin-section" data-apage="orders" hidden>
+            <h3 class="h3">الطلبات</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>رقم الطلب</th><th>العميل</th><th>الإجمالي</th><th>الحالة</th></tr></thead>
+                <tbody id="admOrders"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- العملاء -->
+          <section class="admin-section" data-apage="customers" hidden>
+            <h3 class="h3">العملاء</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>البريد</th><th>عدد الدومينات</th><th>عميل من</th></tr></thead>
+                <tbody id="admCustomers"></tbody>
+              </table>
+            </div>
+            <p class="hint mt-2">البُرد مصغّرة للعرض (a***@example.com) - مفيش بيانات عملاء حقيقية.</p>
+          </section>
+
+          <!-- التسعير -->
+          <section class="admin-section" data-apage="pricing" hidden>
+            <h3 class="h3">التسعير (شرائح الهامش المعتمدة)</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>تكلفة المزوّد (USD)</th><th>قاعدة الهامش</th></tr></thead>
+                <tbody id="admPricing"></tbody>
+              </table>
+            </div>
+            <div class="card mt-4">
+              <strong>تكلفة المزوّد والهامش</strong>
+              <p class="muted mt-2" style="font-size:var(--fs-sm)">القيم دي بتظهر في لوحة الإدارة فقط، وممنوع تظهر في واجهة العميل. تعديل الشرائح محتاج اعتماد صاحب المشروع.</p>
+            </div>
+          </section>
+
+          <!-- المزوّد -->
+          <section class="admin-section" data-apage="provider" hidden>
+            <h3 class="h3">المزوّد / Sandbox</h3>
+            <div class="card">
+              <div class="row-between wrap-flex">
+                <strong>Openprovider</strong>
+                <span class="pill danger">غير متصل</span>
+              </div>
+              <p class="muted mt-3" style="font-size:var(--fs-sm)">مفيش أي حساب موزّع أو مفاتيح تكامل لحد الآن. فتح الحساب أو أي رسوم = موافقة منفصلة من صاحب المشروع، وممنوع استخدام مفاتيح إنتاج.</p>
+              <div class="mt-4">
+                <div class="dim" style="font-size:var(--fs-xs)">سجل الأخطاء</div>
+                <div class="empty mt-2" style="padding:var(--s5)">مفيش أخطاء مسجّلة (المزوّد غير متصل).</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- السجلات -->
+          <section class="admin-section" data-apage="audit" hidden>
+            <h3 class="h3">السجلات (Audit)</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>المستخدم</th><th>العملية</th><th>العنصر</th><th>النتيجة</th></tr></thead>
+                <tbody id="admAudit"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- الإعدادات -->
+          <section class="admin-section" data-apage="settings" hidden>
+            <h3 class="h3">الإعدادات</h3>
+            <div class="grid grid-3">
+              <div class="card card-tight">
+                <strong>العملات</strong>
+                <p class="muted mt-2" style="font-size:var(--fs-sm)">USD (الحساب الداخلي) + EGP (سعر الصرف المعتمد).</p>
+              </div>
+              <div class="card card-tight">
+                <strong>اللغات</strong>
+                <p class="muted mt-2" style="font-size:var(--fs-sm)">العربية RTL (أساسية) + الإنجليزية LTR.</p>
+              </div>
+              <div class="card card-tight">
+                <strong>الإشعارات</strong>
+                <p class="muted mt-2" style="font-size:var(--fs-sm)">تنبيهات التجديد، فشل الطلبات، وتغيّر تكلفة المزوّد.</p>
+              </div>
+            </div>
+            <p class="dim mt-4" style="font-size:var(--fs-xs)">الإعدادات شكلية في هذه المرحلة، والتعديل الفعلي هيتم بعد ربط الباك إند.</p>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap-wide row-between wrap-flex">
+      <p>Migo Domains - لوحة الإدارة (تصميم تجريبي).</p>
+      <p class="row"><a href="index.html">واجهة العميل</a><span class="dim">&copy; <span data-year>2026</span></span></p>
+    </div>
+  </footer>
+
+  <div class="scrim" data-dismiss></div>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/admin.js"></script>
+</body>
+</html>
