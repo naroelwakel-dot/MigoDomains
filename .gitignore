@@ -1,0 +1,30 @@
+# Environment & secrets - never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+
+# Dependencies
+node_modules/
+vendor/
+
+# Cloudflare / Wrangler
+.wrangler/
+.dev.vars
+
+# Build output
+dist/
+build/
+.output/
+
+# Logs & caches
+*.log
+.DS_Store
+Thumbs.db
+.cache/
+
+# Editor
+.vscode/
+.idea/
