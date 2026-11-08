@@ -1,0 +1,11 @@
+{
+  "name": "migo-domains-providers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "طبقة المزوّدين لـ Migo Domains — عقد موحّد + مزوّد وهمي كامل. بدون أي مكتبات خارجية.",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "demo": "node demo.js"
+  }
+}
