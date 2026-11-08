@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Migo Domains - ابحث عن دومينك</title>
+  <meta name="description" content="ابحث وسجّل وجدّد وانقل الدومينات بشفافية. أسعار واضحة، ملكية باسمك، ودعم عربي.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=Inter:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+</head>
+<body>
+  <a class="skip" href="#main">تخطَّ إلى المحتوى</a>
+
+  <header class="masthead">
+    <div class="wrap bar">
+      <a class="brand" href="index.html"><span class="dot" aria-hidden="true"></span> Migo Domains</a>
+      <button class="nav-toggle" data-nav-toggle="#main-nav" aria-expanded="false" aria-controls="main-nav" aria-label="القائمة">&#9776;</button>
+      <nav class="nav" id="main-nav" aria-label="التنقل الرئيسي">
+        <a href="index.html" aria-current="page">الرئيسية</a>
+        <a href="search.html">البحث عن دومين</a>
+        <a href="search.html" data-toast="صفحة الأسعار (تجريبي)">الأسعار</a>
+        <a href="support.html">الدعم</a>
+        <button class="btn btn-sm" data-dir-toggle type="button" aria-pressed="false">EN / LTR</button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- Hero: البحث هو البطل -->
+    <section class="section" style="padding-top:var(--s8)">
+      <div class="wrap">
+        <p class="eyebrow">Migo AI Solution</p>
+        <h1 class="mt-2" style="font-size:clamp(28px,3vw + 12px,40px);font-weight:var(--fw-black)">
+          ابحث عن دومينك، وسجّله باسمك.
+        </h1>
+        <p class="lead mt-3">بحث فوري، أسعار واضحة لكل امتداد، وملكية الدومين مسجّلة باسمك من أول يوم. بدون رسوم مخفية.</p>
+
+        <form class="mt-5" id="search-form" action="search.html" method="get" role="search" style="max-width:640px">
+          <label class="sr" for="q">اكتب اسم الدومين</label>
+          <div class="row">
+            <input class="input grow" id="q" name="q" type="search" inputmode="url" autocomplete="off"
+                   placeholder="مثال: migo-egypt.com" aria-describedby="q-hint">
+            <button class="btn btn-primary" type="submit">ابحث</button>
+          </div>
+          <p class="hint mt-2" id="q-hint">اكتب الاسم مع الامتداد أو بدونه - هنفحص الامتدادات المتاحة.</p>
+        </form>
+
+        <div class="mt-6 row wrap-flex">
+          <span class="pill accent">.com</span>
+          <span class="pill accent">.net</span>
+          <span class="pill accent">.org</span>
+          <span class="pill accent">.io</span>
+          <span class="pill accent">.dev</span>
+          <span class="pill accent">.ai</span>
+          <span class="dim" style="font-size:var(--fs-xs)">والأسعار بتظهر بعد البحث</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- المميزات -->
+    <section class="section">
+      <div class="wrap">
+        <h2 class="h2">ليه Migo Domains</h2>
+        <div class="mt-5 grid grid-3">
+          <div class="card">
+            <h3 class="h3">ملكية باسمك</h3>
+            <p class="muted mt-2">الدومين بيتسجّل باسم العميل الفعلي كـ Registrant، مع إمكانية تحديث بيانات الاتصال عند السماح.</p>
+          </div>
+          <div class="card">
+            <h3 class="h3">أسعار شفافة</h3>
+            <p class="muted mt-2">سعر التسجيل والتجديد والنقل ظاهر منفصل لكل امتداد قبل أي دفع. مفيش رسوم مفاجئة.</p>
+          </div>
+          <div class="card">
+            <h3 class="h3">دعم عربي</h3>
+            <p class="muted mt-2">واجهة عربي RTL أولًا، ودعم يتابع طلبك خطوة بخطوة لحد ما الدومين يشتغل.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- الملكية -->
+    <section class="section">
+      <div class="wrap">
+        <div class="grid grid-2">
+          <div>
+            <p class="eyebrow">ملكية الدومين</p>
+            <h2 class="h2 mt-2">الدومين بتاعك، باسمك، وبياناتك تحت إيدك.</h2>
+            <p class="lead mt-3">بنشرحلك بالظبط مين المسؤول عن إيه: الـ Registrant، وإدارة الـ DNS، وكود النقل (Auth Code) لما يكون مسموحًا بيه، وتنبيهات التجديد قبل الميعاد.</p>
+          </div>
+          <div class="card">
+            <ul class="mt-0" style="padding-inline-start:1.1em;line-height:2">
+              <li>Registrant = العميل</li>
+              <li>لوحة تحكم لإدارة الـ DNS</li>
+              <li>Auth Code عند السماح بالإجراء</li>
+              <li>تنبيهات تجديد واضحة قبل الانتهاء</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- الأسئلة الشائعة -->
+    <section class="section">
+      <div class="wrap" style="max-width:820px">
+        <h2 class="h2">الأسئلة الشائعة</h2>
+        <div class="mt-5">
+          <details class="card card-tight mt-3">
+            <summary style="cursor:pointer;font-weight:var(--fw-medium)">هل السعر بيشمل التجديد؟</summary>
+            <p class="muted mt-2">السعر المعروض سعر التسجيل للسنة الأولى. سعر التجديد بيبان منفصل لكل امتداد قبل الشراء.</p>
+          </details>
+          <details class="card card-tight mt-3">
+            <summary style="cursor:pointer;font-weight:var(--fw-medium)">أقدر أنقل دومين عندي؟</summary>
+            <p class="muted mt-2">النقل متاح بشرط أن يكون الدومين مؤهّلًا للنقل (مش مقفول، ومضى عليه الوقت المطلوب)، وسعر النقل ظاهر قبل التأكيد.</p>
+          </details>
+          <details class="card card-tight mt-3">
+            <summary style="cursor:pointer;font-weight:var(--fw-medium)">إيه البيانات اللي محتاجينها؟</summary>
+            <p class="muted mt-2">بيانات الاتصال الخاصة بالـ Registrant، وبعض الامتدادات بتحتاج توثيق. بنوضّح المطلوب بالظبط قبل الدفع.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap row-between wrap-flex">
+      <p>Migo Domains - منتج من Migo AI Solution. <span class="dim">جميع الأسعار توضيحية في هذه المرحلة.</span></p>
+      <p class="row">
+        <a href="support.html">الدعم</a>
+        <span class="dim">&copy; <span data-year>2026</span></span>
+      </p>
+    </div>
+  </footer>
+
+  <div class="scrim" data-dismiss></div>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
