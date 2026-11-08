@@ -17,6 +17,69 @@
 .admin-section { margin-top: var(--s5); }
 .admin-section h3 { margin-bottom: var(--s3); }
 
+/* --- شريط الفلاتر والبحث فوق الجداول --- */
+.admin-toolbar { display: flex; align-items: flex-end; gap: var(--s3); flex-wrap: wrap; margin-bottom: var(--s4); }
+.admin-toolbar .field { min-width: 220px; }
+.admin-toolbar .grow { min-width: 220px; }
+
+.chips { display: flex; gap: var(--s2); flex-wrap: wrap; align-items: center; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  min-height: 34px; padding: 0 var(--s3); border-radius: var(--r-pill);
+  border: var(--border); background: var(--surface-1); color: var(--text-2);
+  font-family: inherit; font-size: var(--fs-xs); font-weight: var(--fw-bold);
+}
+.chip:hover { border-color: var(--line-strong); color: var(--text-1); }
+.chip[aria-pressed="true"] { background: var(--accent-weak); border-color: var(--accent); color: var(--text-1); }
+.chip .n { font-family: var(--font-mono); color: var(--text-3); }
+.chip[aria-pressed="true"] .n { color: var(--accent); }
+
+/* --- بطاقات المؤشرات --- */
+.kpi { display: flex; flex-direction: column; gap: var(--s2); }
+.kpi .kpi-k { font-size: var(--fs-xs); color: var(--text-2); }
+.kpi .kpi-v { font-size: var(--fs-h2); font-weight: var(--fw-black); font-family: var(--font-mono); }
+.kpi .kpi-d { font-size: var(--fs-xs); color: var(--text-3); }
+.kpi .kpi-d.up { color: var(--ok); }
+.kpi .kpi-d.down { color: var(--warn); }
+.mini-bar { height: 6px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; }
+.mini-bar > i { display: block; height: 100%; background: var(--accent); }
+
+/* --- قائمة "يحتاج انتباه" --- */
+.attention { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s3); }
+.attention li { display: flex; align-items: center; gap: var(--s3); font-size: var(--fs-sm); }
+.attention li .dotmark { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
+.attention li.danger .dotmark { background: var(--danger); }
+.attention li .grow { min-width: 0; }
+
+/* --- مصفوفة قدرات المزوّد --- */
+.cap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); }
+.cap {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
+  border: var(--border); border-radius: var(--r-sm); padding: var(--s2) var(--s3); font-size: var(--fs-sm);
+}
+.cap .mono { font-size: var(--fs-xs); color: var(--text-3); }
+
+/* --- مخرجات الحاسبة --- */
+.calc-out { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s3); }
+.calc-out .card { padding: var(--s4); }
+.calc-out .k { font-size: var(--fs-xs); color: var(--text-2); }
+.calc-out .v { font-family: var(--font-mono); font-size: var(--fs-h3); font-weight: var(--fw-bold); margin-top: var(--s2); }
+
+/* --- Drawer تفاصيل من جهة النهاية --- */
+.drawer-end {
+  inset-inline-start: auto; inset-inline-end: 0; width: min(420px, 94vw);
+  border-inline-end: 0; border-inline-start: var(--border); transform: translateX(100%);
+}
+html[dir="rtl"] .drawer-end { transform: translateX(-100%); }
+.drawer-end.open { transform: translateX(0); }
+.drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s3); margin-bottom: var(--s4); }
+.kv { display: grid; grid-template-columns: 42% 1fr; gap: var(--s2) var(--s3); font-size: var(--fs-sm); margin: 0; }
+.kv dt { color: var(--text-2); }
+.kv dd { margin: 0; }
+.dz { border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
+
+@media (max-width: 1180px) { .admin-cards { grid-template-columns: repeat(3, 1fr); } }
+
 @media (max-width: 980px) {
   .admin-shell { grid-template-columns: 1fr; }
   .admin-side {
@@ -26,4 +89,6 @@
   }
   .admin-side a { white-space: nowrap; }
   .admin-cards { grid-template-columns: repeat(2, 1fr); }
+  .cap-grid { grid-template-columns: 1fr; }
+  .calc-out { grid-template-columns: 1fr; }
 }
