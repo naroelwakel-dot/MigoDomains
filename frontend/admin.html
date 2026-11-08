@@ -32,6 +32,18 @@
         <span class="pill warn">بيانات تجريبية</span>
       </div>
 
+      <!-- ملاحظة: auth-guard.js بيحمي بالجلسة بس. فحص صلاحية الإدارة (is_admin)
+           لسه مطلوب قبل الاعتماد على الصفحة دي في الإنتاج. -->
+      <div id="guardNote" class="card" hidden style="background:var(--surface-2);margin-bottom:var(--s4)">
+        <strong style="font-size:var(--fs-sm)">وضع تجريبي</strong>
+        <p class="muted mt-2" style="font-size:var(--fs-sm)">تسجيل الدخول لسه غير مُهيّأ، فالصفحة دي بتعرض بيانات تجريبية. لما يتم الربط، هتطلب تسجيل دخول الأول.</p>
+      </div>
+
+      <div class="row-between wrap-flex" data-auth-only hidden style="margin-bottom:var(--s4)">
+        <span class="muted" style="font-size:var(--fs-sm)">مسجّل دخول: <span class="mono" data-user-email></span></span>
+        <button class="btn btn-ghost btn-sm" type="button" data-signout>خروج</button>
+      </div>
+
       <div class="admin-shell">
         <!-- التنقل الجانبي: بيانات القسم في data-apanel -->
         <nav class="admin-side" aria-label="أقسام الإدارة">
@@ -163,5 +175,6 @@
   <div class="scrim" data-dismiss></div>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/admin.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
 </body>
 </html>
