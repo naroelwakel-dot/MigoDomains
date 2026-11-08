@@ -1,0 +1,29 @@
+/* ==========================================================================
+   Migo Domains - تخطيط لوحة الإدارة (يعتمد على tokens.css + base.css)
+   ========================================================================== */
+
+.admin-shell { display: grid; grid-template-columns: 240px 1fr; gap: var(--s6); align-items: start; }
+
+.admin-side { display: flex; flex-direction: column; gap: var(--s1); border-inline-end: var(--border); padding-inline-end: var(--s4); }
+.admin-side a {
+  display: block; padding: var(--s2) var(--s3); border-radius: var(--r-sm);
+  color: var(--text-2); font-size: var(--fs-sm); font-weight: var(--fw-medium);
+}
+.admin-side a:hover { background: var(--surface-1); color: var(--text-1); }
+.admin-side a[aria-current="true"] { background: var(--accent-weak); color: var(--text-1); }
+
+.admin-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; margin-bottom: var(--s5); }
+.admin-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--s3); }
+.admin-section { margin-top: var(--s5); }
+.admin-section h3 { margin-bottom: var(--s3); }
+
+@media (max-width: 980px) {
+  .admin-shell { grid-template-columns: 1fr; }
+  .admin-side {
+    flex-direction: row; overflow-x: auto; gap: var(--s2);
+    border-inline-end: 0; border-bottom: var(--border);
+    padding: 0 0 var(--s3);
+  }
+  .admin-side a { white-space: nowrap; }
+  .admin-cards { grid-template-columns: repeat(2, 1fr); }
+}
