@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang='ar' dir='rtl'><head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='color-scheme' content='dark'>
+<title>Migo Domains — معاينة التصميم v2 (واجهة العميل + لوحة الإدارة)</title>
+<link rel='preconnect' href='https://fonts.googleapis.com'>
+<link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+<link href='https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&family=Inter:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap' rel='stylesheet'>
+<link rel='stylesheet' href='styles.css'>
+</head><body><a class='skip' href='#main'>تخطَّ إلى المحتوى</a>
+<header class='top'><div class='wrap-wide row'>
+<span class='brand'><span class='dot'></span> Migo Domains</span>
+<nav class='desk' aria-label='التنقل الرئيسي'><a href='#tokens'>التوكنز</a>
+<a href='#components'>المكونات</a>
+<a href='#client'>واجهة العميل</a>
+<a href='#screens'>الصفحات</a>
+<a href='#admin'>لوحة الإدارة</a>
+<a href='#ltr'>RTL/LTR</a>
+</nav><span class='spacer'></span>
+<button class='btn btn-ghost btn-sm' id='dirBtn' type='button' aria-pressed='false'>EN / LTR</button>
+<span class='pill p-info' style='display:none' id='topBadge'>v2</span>
+<button class='iconbtn mbtn' id='mBtn' type='button' aria-expanded='false' aria-controls='mNav' aria-label='فتح القائمة'>☰</button>
+</div><nav class='mnav' id='mNav' aria-label='قائمة الهاتف'><a href='#tokens'>التوكنز</a>
+<a href='#components'>المكونات</a>
+<a href='#client'>واجهة العميل</a>
+<a href='#search'>حالات البحث</a>
+<a href='#screens'>صفحات المنصة</a>
+<a href='#admin'>لوحة الإدارة</a>
+<a href='#ltr'>RTL / LTR</a>
+</nav></header>
+<main id='main'><div class='wrap'>
+<section style='border-bottom:0;padding-bottom:24px'><span class='eyebrow'>Design Preview · v2</span>
+<h2 class='h2' style='font-size:clamp(24px,2vw + 18px,34px);margin-top:12px'>معاينة واجهة Migo Domains قبل الاعتماد</h2><p class='lead'>نسخة مطوّرة من معاينة v1: تجربة هاتف حقيقية، حالات بحث كاملة، فصل أسعار التسجيل والتجديد والنقل، واجهة عميل موسّعة، ولوحة إدارة منظّمة بثمانية أقسام. المرجع البصري هو <span class='mono'>docs/DESIGN_SYSTEM.md</span>.</p><div class='notebox' style='margin-top:16px'><b>معاينة تصميم فقط.</b> كل الأسماء والأسعار والأرقام هنا <b>تجريبية ثابتة للعرض</b> ومش نتيجة فحص حقيقي ولا اتصال بأي مزوّد. مفيش أي عملية تسجيل دومين أو دفع أو اتصال خارجي. والملكية والحالات معروضة كنموذج تصميمي، مش وعد قانوني.
+</div><div class='stack' style='margin-top:16px'><button class='btn btn-secondary btn-sm demo-action' data-toast='فتح تلميح تجريبي · التنقل داخل الصفحة فقط'>كيف أتنقّل في المعاينة؟</button>
+<button class='btn btn-secondary btn-sm' id='resetBtn' type='button'>إعادة تعيين الحالات التجريبية</button>
+</div></section>
+<section id='tokens'><span class='eyebrow'>01 · Design Tokens</span>
+<h2 class='h2'>الهوية والقيم الأساسية</h2><p class='sub'>أسود فحمي · رمادي معدني · Accent سماوي هادئ واحد. مفيش بنفسجي ولا Neon ولا Glow ولا تدرجات زخرفية.</p>
+<div class='grid-auto' style='margin-top:24px'><div class='swatch'><div class='chip' style='background:#0A0B0D'></div><div class='meta'><div class='name'>خلفية الصفحة</div><div class='use'>أسود فحمي</div><div class='hex mono'>#0A0B0D</div></div></div><div class='swatch'><div class='chip' style='background:#121417'></div><div class='meta'><div class='name'>سطح 1</div><div class='use'>بطاقات ولوحات</div><div class='hex mono'>#121417</div></div></div><div class='swatch'><div class='chip' style='background:#191C20'></div><div class='meta'><div class='name'>سطح 2</div><div class='use'>رؤوس الجداول</div><div class='hex mono'>#191C20</div></div></div><div class='swatch'><div class='chip' style='background:#24282E'></div><div class='meta'><div class='name'>حدود</div><div class='use'>فواصل هادئة</div><div class='hex mono'>#24282E</div></div></div><div class='swatch'><div class='chip' style='background:#31363D'></div><div class='meta'><div class='name'>حدود قوية</div><div class='use'>تركيز / تقسيم</div><div class='hex mono'>#31363D</div></div></div><div class='swatch'><div class='chip' style='background:#8B95A1'></div><div class='meta'><div class='name'>رمادي معدني</div><div class='use'>أيقونات ثانوية</div><div class='hex mono'>#8B95A1</div></div></div><div class='swatch'><div class='chip' style='background:#F2F5F7'></div><div class='meta'><div class='name'>نص أساسي</div><div class='use'>عنوان ونص</div><div class='hex mono'>#F2F5F7</div></div></div><div class='swatch'><div class='chip' style='background:#A7B0B8'></div><div class='meta'><div class='name'>نص ثانوي</div><div class='use'>شرح ووصف</div><div class='hex mono'>#A7B0B8</div></div></div><div class='swatch'><div class='chip' style='background:#6E7882'></div><div class='meta'><div class='name'>نص خامل</div><div class='use'>تلميحات</div><div class='hex mono'>#6E7882</div></div></div><div class='swatch'><div class='chip' style='background:#3FD0C9'></div><div class='meta'><div class='name'>Accent</div><div class='use'>اللمسة الواحدة</div><div class='hex mono'>#3FD0C9</div></div></div><div class='swatch'><div class='chip' style='background:#2BB3AD'></div><div class='meta'><div class='name'>Accent قوي</div><div class='use'>Hover / نشط</div><div class='hex mono'>#2BB3AD</div></div></div><div class='swatch'><div class='chip' style='background:#123230'></div><div class='meta'><div class='name'>Accent خفيف</div><div class='use'>تظليل هادئ</div><div class='hex mono'>#123230</div></div></div><div class='swatch'><div class='chip' style='background:#34D399'></div><div class='meta'><div class='name'>نجاح</div><div class='use'>مكتمل / مدفوع</div><div class='hex mono'>#34D399</div></div></div><div class='swatch'><div class='chip' style='background:#F5B942'></div><div class='meta'><div class='name'>تحذير</div><div class='use'>معلّق / قريب الانتهاء</div><div class='hex mono'>#F5B942</div></div></div><div class='swatch'><div class='chip' style='background:#F87171'></div><div class='meta'><div class='name'>خطأ</div><div class='use'>فشل / منتهي</div><div class='hex mono'>#F87171</div></div></div><div class='swatch'><div class='chip' style='background:#7FB2D8'></div><div class='meta'><div class='name'>معلوماتي</div><div class='use'>قيد التنفيذ</div><div class='hex mono'>#7FB2D8</div></div></div></div>
+<div class='two' style='margin-top:48px'><div>
+<h3 style='font-size:20px'>الخطوط والمقاسات</h3><p class='sub'>IBM Plex Sans Arabic · Inter · IBM Plex Mono. أوزان 400 / 500 / 700 / 800 بس.</p><div style='margin-top:16px'><div class='type-row'><span class='tag mono'>display 40</span><span style='font-size:34px;font-weight:800;letter-spacing:-1px'>امتلك دومينك</span></div><div class='type-row'><span class='tag mono'>h1 28</span><span style='font-size:28px;font-weight:700'>نتائج البحث</span></div><div class='type-row'><span class='tag mono'>h2 22</span><span style='font-size:22px;font-weight:700'>تفاصيل الطلب</span></div><div class='type-row'><span class='tag mono'>h3 18</span><span style='font-size:18px;font-weight:700'>طريقة الدفع</span></div><div class='type-row'><span class='tag mono'>body 16</span><span>نص للقراءة الطويلة بتباين كافٍ على الأسود الفحمي.</span></div><div class='type-row'><span class='tag mono'>small 14</span><span style='font-size:14px;color:var(--text-2)'>شرح مساعد وتفاصيل ثانوية.</span></div><div class='type-row'><span class='tag mono'>micro 12</span><span style='font-size:12px;color:var(--text-3)'>تلميح خامل أو وسم صغير.</span></div></div>
+</div><div><h3 style='font-size:20px'>المسافات والأنصاف</h3><p class='sub'>المسافات 4 → 64 · الأنصاف 8 / 12 / 16 / pill · ظل واحد هادئ، والحدود هي الفاصل الأساسي.</p><div class='bars' style='margin-top:16px'><div class='bar' style='--w:16px'>4</div><div class='bar' style='--w:24px'>8</div><div class='bar' style='--w:36px'>12</div><div class='bar' style='--w:48px'>16</div><div class='bar' style='--w:64px'>24</div><div class='bar' style='--w:80px'>32</div><div class='bar' style='--w:104px'>48</div><div class='bar' style='--w:128px'>64</div></div>
+<div class='radii' style='margin-top:24px'><div style='border-radius:8px'>8</div><div style='border-radius:12px'>12</div><div style='border-radius:16px'>16</div><div style='border-radius:999px'>pill</div></div>
+<div class='notebox' style='margin-top:20px'>الحركة 120 إلى 200ms بمنحنى ease-out، وهدفية فقط (ظهور أو تحديد)، ومع <span class='mono'>prefers-reduced-motion</span> بتتوقف.</div></div>
+</div></section>
+<section id='components'><span class='eyebrow'>02 · المكونات المشتركة</span>
+<h2 class='h2'>نظام مكوّنات واحد لكل وظيفة</h2><p class='sub'>كل مكوّن بحالات Hover و Focus و Disabled و Loading. وزر Primary واحد في كل منطقة عمل.</p>
+<div class='two' style='margin-top:24px'><div class='card'>
+<h3>الأزرار</h3><p class='hint'>Primary واحد في المنطقة · ثانوي · شفاف · خطر للعمليات الحسّاسة.</p><div class='stack'><button class='btn btn-primary' type='button' id='loadBtn'>ابحث الآن</button>
+<button class='btn btn-secondary' type='button'>تجديد الدومين</button>
+<button class='btn btn-ghost' type='button'>تفاصيل أكثر</button>
+<button class='btn btn-danger' type='button' data-dialog='confirmDialog'>إلغاء الطلب</button>
+</div><div class='stack' style='margin-top:12px'><button class='btn btn-primary' type='button' disabled>معطّل</button>
+<button class='btn btn-secondary btn-sm' type='button'>حجم صغير</button>
+<span class='tip'>ⓘ الحد الأدنى للسن 18</span>
+</div></div>
+<div class='card'><h3>الحقول والاختيار</h3><p class='hint'>حقول بمساحة لمس 44px · حالات Focus واضحة · تحقّق فوري.</p><div class='stack' style='align-items:flex-end'><div class='field'><label for='f1'>اسم الدومين</label><input id='f1' class='input' placeholder='example.com'></div><div class='field'><label for='f2'>الامتداد</label>
+<select id='f2' class='input'><option>.com</option><option>.net</option><option>.store</option><option>.shop</option><option>.dev</option></select>
+</div></div>
+<div class='stack' style='margin-top:16px;flex-direction:column;align-items:stretch;gap:10px'><label class='check'><input type='checkbox' class='sr' checked><span class='box'></span> أوافق على شروط التسجيل وسياسة الاسترداد</label>
+<label class='check'><input type='radio' name='own' class='sr' checked><span class='rad'></span> الدومين باسمي (Registrant = أنا)</label>
+<label class='check'><input type='radio' name='own' class='sr'><span class='rad'></span> الدومين باسم جهة أخرى، بموافقتها</label>
+</div><div class='stack' style='margin-top:16px;justify-content:space-between;border-top:var(--b);padding-top:14px'><span class='lbl'>تنبيه قبل الانتهاء بـ 30 يوم</span>
+<button class='switch' type='button' role='switch' aria-checked='true' aria-label='تنبيه قبل الانتهاء بـ 30 يوم'></button>
+</div></div>
+</div>
+<div class='card' style='margin-top:16px'><h3>حالات الدومين والطلب والتجديد</h3><p class='hint'>كل حالة لها لون ثابت ومعنى واحد في واجهة العميل ولوحة الإدارة.</p><div class='legend'><span class='pill p-ok'>متاح</span><span class='pill p-ok'>مسجّل</span><span class='pill p-ok'>مدفوع</span><span class='pill p-ok'>مكتمل</span>
+<span class='pill p-info'>قيد التحقق</span><span class='pill p-info'>قيد النقل</span><span class='pill p-info'>قيد التجديد</span><span class='pill p-info'>قيد التنفيذ</span>
+<span class='pill p-warn'>معلّق</span><span class='pill p-warn'>ينتهي قريبًا</span><span class='pill p-warn'>بانتظار الدفع</span>
+<span class='pill p-bad'>فشل الدفع</span><span class='pill p-bad'>فاشل</span><span class='pill p-bad'>منتهي</span>
+<span class='pill p-acc'>جديد</span><span class='pill p-mut'>ملغى</span><span class='pill p-mut'>مؤرشف</span>
+</div></div>
+<div class='two' style='margin-top:16px'><div class='card' style='padding:0'>
+<div style='padding:24px 24px 12px'><h3>تنقّل وحالات نظام</h3><p class='hint'>Tabs · Breadcrumb · Toast · Skeleton · Empty.</p></div><div class='tabs' role='tablist' aria-label='تبويبات تجريبية' data-tabs='demo1'><button class='tab' role='tab' aria-selected='true' data-tab='t1' id='tab-t1' aria-controls='p-t1'>التفاصيل</button>
+<button class='tab' role='tab' aria-selected='false' data-tab='t2' id='tab-t2' aria-controls='p-t2'>DNS</button>
+<button class='tab' role='tab' aria-selected='false' data-tab='t3' id='tab-t3' aria-controls='p-t3'>الفواتير</button>
+</div><div style='padding:16px 24px 24px'><div class='panel' id='p-t1' role='tabpanel' aria-labelledby='tab-t1'>لوحة التفاصيل: بيانات الدومين، المالك، وتواريخ التسجيل والانتهاء.</div><div class='panel' id='p-t2' role='tabpanel' aria-labelledby='tab-t2' hidden>لوحة الـ DNS: السجلات الحالية وإضافة سجل جديد (نموذج تصميمي).</div><div class='panel' id='p-t3' role='tabpanel' aria-labelledby='tab-t3' hidden>لوحة الفواتير: فاتورة التسجيل وفواتير التجديد القادمة.</div><div class='bc' style='margin-top:16px'><button class='linklike' type='button' data-toast='تجريبي · مسار التنقل'>حسابي</button><span>›</span><button class='linklike' type='button' data-toast='تجريبي · مسار التنقل'>دوميناتي</button><span>›</span><span class='mono'>migo-example.com</span></div><div class='stack' style='margin-top:16px'><button class='btn btn-secondary btn-sm' type='button' data-toast='تم حفظ الإعدادات (تجريبي)' >أظهر Toast نجاح</button>
+<button class='btn btn-secondary btn-sm' type='button' data-toast='تنبيه: التجديد بعد 12 يوم (تجريبي)' >أظهر Toast تنبيه</button>
+</div><div style='margin-top:16px;display:flex;gap:12px;align-items:center'><div class='skel' style='width:40%'></div><div class='skel' style='width:22%'></div><div class='skel' style='width:30%'></div></div>
+</div></div>
+<div class='card'><h3>حالة فراغ · تأكيد · Drawer</h3><p class='hint'>الفراغ بيوجّه لخطوة عملية. والتأكيد بيشرح النتيجة قبل التنفيذ.</p><div class='empty' style='border:1px dashed var(--line);border-radius:var(--r-md);padding:24px 16px'><div class='mark' aria-hidden='true'></div><div style='color:var(--text-1);font-weight:700'>لسه مفيش دومينات هنا</div><div style='font-size:13px;margin-top:6px'>ابدأ بالبحث وتشوف المتاح في ثانية.</div><button class='btn btn-secondary' style='margin-top:16px' type='button' data-toast='تجريبي · البحث عن دومين'>ابحث عن دومين</button>
+</div><div class='stack' style='margin-top:16px'><button class='btn btn-secondary' type='button' data-dialog='confirmDialog'>افتح نافذة تأكيد</button>
+<button class='btn btn-secondary' type='button' data-dialog='drawerDemo'>افتح Drawer نموذجي</button>
+</div><div class='notebox' style='margin-top:16px'>النافذة بتقفل بـ Escape وبالضغط على الخلفية، والتركيز بيرجع للزر اللي فتحها.</div></div>
+</div></section>
+<section id='search'><span class='eyebrow'>03 · البحث عن الدومين</span>
+<h2 class='h2'>خمس حالات تصميمية كاملة</h2><p class='sub'>البحث هو العنصر الرئيسي في المنصة. جرّب الحالات من الأزرار، والنتائج كلها تجريبية ثابتة.</p>
+<div class='card' style='margin-top:24px'><div class='search'>
+<span class='ico' aria-hidden='true'>⌕</span>
+<label class='sr' for='q'>اسم الدومين</label>
+<input id='q' value='migo' placeholder='اكتب الاسم اللي عايزه…' autocomplete='off'>
+<button class='btn btn-primary' id='goBtn' type='button'>تحقّق من التوفّر</button>
+</div><div class='stack' style='margin-top:12px'><span class='dim' style='font-size:12.5px'>عرض الحالة:</span>
+<button class='fchip' type='button' data-state='loading'>1 · جاري البحث</button>
+<button class='fchip' type='button' data-state='available'>2 · متاح</button>
+<button class='fchip' type='button' data-state='taken'>3 · محجوز</button>
+<button class='fchip' type='button' data-state='error'>4 · خطأ اتصال</button>
+<button class='fchip' type='button' data-state='alt'>5 · اقتراحات بديلة</button>
+</div><div id='sres' aria-live='polite'></div><div class='notebox' style='margin-top:16px'>مفيش أي فحص حقيقي ومفيش اتصال بأي مزوّد أو خدمة. الأسماء والأسعار ثابتة داخل الملف للعرض فقط.</div></div>
+<div class='two' style='margin-top:16px'><div class='card'>
+<h3>عرض الأسعار (واجهة العميل)</h3><p class='hint'>فصل واضح بين سعر التسجيل وسعر التجديد وسعر النقل ومدة التسجيل.</p><div class='pricegrid'><div class='price'><div class='k'>سعر التسجيل (أول سنة)</div><div class='v'>12.99$</div></div><div class='price'><div class='k'>سعر التجديد السنوي</div><div class='v'>14.99$</div></div><div class='price'><div class='k'>سعر نقل الدومين</div><div class='v'>13.99$</div></div><div class='price'><div class='k'>مدة التسجيل</div><div class='v'>سنة واحدة</div></div></div>
+<div class='notebox' style='margin-top:14px'>الأسعار المعروضة <b>توضيحية</b> وليست عروض أسعار فعلية، ومفيش أي التزام بتوفر الدومين.</div></div>
+<div class='card'><h3>اللي مش بيظهر للعميل</h3><p class='hint'>فاصل صريح بين واجهة العميل ولوحة الإدارة.</p><ul class='muted' style='margin:0;padding-inline-start:18px;font-size:13.5px;line-height:2'><li>تكلفة المزوّد</li><li>هامش ربح Migo</li><li>قواعد التسعير الداخلية</li><li>بيانات الحسابات الداخلية للمزوّد</li><li>أي مفاتيح أو بيانات اتصال</li></ul>
+<div class='okbox' style='margin-top:14px'>التكلفة والهامش بيظهروا <b>بس</b> في لوحة الإدارة (قسم Pricing).</div></div>
+</div></section>
+<section id='client'><span class='eyebrow'>04 · واجهة العميل</span>
+<h2 class='h2'>الصفحة الرئيسية</h2><p class='sub'>Header · Hero بحث · امتدادات شائعة · مميزات · خطوات الشراء · توضيح الملكية · إدارة وتجديد · أسئلة شائعة · Footer.</p>
+<div class='frame'><div class='bar'><i></i><i></i><i></i><span class='url'>migodomains.com/ar</span></div><div class='pad'><header class='nav2'>
+<span class='brand'><span class='dot'></span> Migo Domains</span>
+<nav class='links' aria-label='تنقل العميل'><span>الأسعار</span><span>النقل</span><span>الملكية</span><span>الدعم</span>
+</nav><span class='spacer'></span>
+<button class='btn btn-ghost btn-sm' type='button' data-toast='تجريبي · تغيير اللغة'>EN</button>
+<button class='btn btn-secondary btn-sm' type='button' data-toast='تجريبي · الدخول للحساب'>حسابي<span class='pill p-acc' style='margin-inline-start:6px' id='cartCount'>السلة 0</span></button>
+</header>
+<div class='hero'><h1>ابحث عن دومينك<br>وامتلكه <span class='hl'>باسمك</span></h1><p>تحقّق فوري من التوفّر، امتدادات مختارة، والدومين يُسجَّل في بيانات العميل نفسه.</p><div class='searchbar'><div class='search'>
+<span class='ico' aria-hidden='true'>⌕</span>
+<label class='sr' for='heroQ'>اسم الدومين</label>
+<input id='heroQ' placeholder='اكتب الاسم اللي عايزه…'>
+<select class='tldpick' aria-label='الامتداد'><option>.com</option><option>.net</option><option>.store</option></select>
+<button class='btn btn-primary go' id='heroGo' type='button'>ابحث</button>
+</div></div>
+<div class='tlds' id='tldStrip'></div><div class='dim' style='font-size:12px;margin-top:10px'>أسعار توضيحية للعرض فقط</div></div>
+<div class='feat'><div class='f1'>
+<h4>ملكية واضحة</h4><p>الدومين يُسجَّل في بيانات صاحب الحساب (Registrant)، مع ملف ملكية ظاهر في حسابك.</p><div class='stack' style='margin-top:16px'><span class='pill p-ok'>Registrant = العميل</span><span class='pill p-info'>Auth Code عند السماح</span></div></div>
+<div class='f2'><h4>تجديد بدون مفاجآت</h4><p>سعر التجديد ظاهر من أول لحظة، وتنبيه قبل الانتهاء بـ 30 و 7 و 1 يوم.</p><div class='mono dim' style='font-size:12.5px;margin-top:12px'>reminders · 30 / 7 / 1 days</div></div>
+<div class='f3'><h4>خطوات الشراء</h4><ol><li>ابحث وتأكد من التوفّر</li><li>أكمل بياناتك ودفعك</li><li>نتابع حتى التسجيل والتفعيل</li></ol></div>
+</div>
+<div class='sec' style='border-top:var(--b);padding:24px 0'><h3 style='font-size:18px'>ملكية الدومين · كيف بالضبط؟</h3><div class='three' style='margin-top:16px'><div><div style='font-weight:700;font-size:14px'>١. التسجيل باسم العميل</div><p class='dim' style='font-size:13px'>بيانات Registrant بتتسجّل في بيانات صاحب الحساب وقت التسجيل.</p></div><div><div style='font-weight:700;font-size:14px'>٢. إدارة كاملة</div><p class='dim' style='font-size:13px'>تعديل الدنز (DNS) وطلب Auth Code للنقل عند ما تسمح سياسة الامتداد.</p></div><div><div style='font-weight:700;font-size:14px'>٣. شفافية التجديد</div><p class='dim' style='font-size:13px'>تاريخ الانتهاء وسعر التجديد ظاهرين دائمًا في حسابك.</p></div></div>
+<div class='notebox' style='margin-top:16px'>إمكانية النقل أو تعديل بيانات المالك بتخضع دائمًا لسياسات وشروط جهة التسجيل (الـ Registry / الـ Registrar) ولحالة الدومين، ومفيش وعد مطلق بخلاف ذلك.</div></div>
+<div class='sec' style='padding:24px 0'><div class='two'>
+<div><h3 style='font-size:18px'>إدارة وتجديد دوميناتك</h3><p class='dim' style='font-size:13.5px;margin-top:8px'>من حسابك: قايمة الدومينات، حالة كل دومين، تاريخ الانتهاء، تجديد بضغطة، وتحديث الدنز.</p><div class='stack' style='margin-top:14px'><span class='pill p-ok'>نشط</span><span class='pill p-warn'>ينتهي خلال 30 يوم</span><span class='pill p-bad'>منتهي</span></div></div>
+<div class='faq' style='align-self:start'><details open><summary>إمتى بيتم تسجيل الدومين فعليًا؟</summary><div class='ans'>بعد إتمام الدفع والتحقق من البيانات، وبيتحدّث الحالة في حسابك أول ما التسجيل يخلص.</div></details><details><summary>هل سعر التجديد هو نفس سعر أول سنة؟</summary><div class='ans'>مش دايمًا. سعر التجديد بيظهر بوضوح في صفحة الدومين قبل أي دفع.</div></details><details><summary>أقدر أنقل الدومين لمزوّد تاني؟</summary><div class='ans'>ممكن عند ما تسمح سياسة الامتداد وحالة الدومين، وبعد فترة القفل المطبّقة. نطلب لك Auth Code من الحساب.</div></details><details><summary>أدعم الدفع بأي عملة؟</summary><div class='ans'>المنصة بتدعم USD و EGP حسب إعدادات الحساب. ده نموذج تصميمي، ومفيش بوابة دفع متصلة في المرحلة الحالية.</div></details></div>
+</div></div>
+<footer style='border-top:var(--b)'><div class='cols'>
+<div><h4>Migo Domains</h4><p style='font-size:12.5px'>منصة تسجيل وإدارة أسماء النطاقات الخاصة بـ Migo AI Solution.</p></div><div><h4>قانوني</h4><button class='linklike' type='button' data-toast='تجريبي · صفحة الشروط'>الشروط</button><br><button class='linklike' type='button' data-toast='تجريبي · سياسة الخصوصية'>الخصوصية</button><br><button class='linklike' type='button' data-toast='تجريبي · سياسة الاسترداد'>الاسترداد</button></div><div><h4>الدعم</h4><button class='linklike' type='button' data-toast='تجريبي · صفحة الدعم'>مركز الدعم</button><br><button class='linklike' type='button' data-toast='تجريبي · تذاكر الدعم'>تذاكري</button></div><div><h4>الحساب</h4><button class='linklike' type='button' data-toast='تجريبي · الدخول'>تسجيل الدخول</button><br><button class='linklike' type='button' data-toast='تجريبي · حساب جديد'>حساب جديد</button></div></div>
+<div class='mono' style='font-size:11.5px'>© 2026 Migo AI Solution · design preview v2</div></footer>
+</div></div>
+</section>
+<section id='screens'><span class='eyebrow'>05 · صفحات المنصة</span>
+<h2 class='h2'>معاينات تصميمية للصفحات</h2><p class='sub'>تسع صفحات: نتائج البحث · تفاصيل الدومين · السلة · الدفع · دوميناتي · إدارة الدومين · التجديد · الطلبات · الدعم.</p><div class='pgrid' id='screensGrid' style='margin-top:24px'></div><div class='notebox' style='margin-top:16px'>كل المحتوى داخل المعاينات دي نموذجي وموسوم كـ Demo، ومش مرتبط بأي بيانات حقيقية.</div></section>
+<section id='admin'><span class='eyebrow'>06 · لوحة الإدارة</span>
+<h2 class='h2'>لوحة الإدارة · ثمانية أقسام</h2><p class='sub'>على الهاتف: القائمة بتتحول Drawer. الجداول بتتسحب أفقيًا. مفيش عنصر مهم مخفي.</p>
+<div class='frame'><div class='bar'><i></i><i></i><i></i><span class='url'>admin.migodomains.com</span></div><div class='admin'><aside class='sb' id='sb' aria-label='أقسام لوحة الإدارة'>
+<span class='brand' style='font-size:14px;margin-bottom:12px'><span class='dot'></span> Migo Admin</span>
+<div class='grp'>العمليات</div><button class='item' type='button' data-asec='overview'>نظرة عامة</button>
+<button class='item' type='button' data-asec='domains' aria-current='true'>الدومينات</button>
+<button class='item' type='button' data-asec='orders'>الطلبات</button>
+<button class='item' type='button' data-asec='customers'>العملاء</button>
+<div class='grp'>المال والتسعير</div><button class='item' type='button' data-asec='pricing'>التسعير والهامش</button>
+<div class='grp'>النظام</div><button class='item' type='button' data-asec='provider'>المزوّد / Sandbox</button>
+<button class='item' type='button' data-asec='audit'>السجلات</button>
+<button class='item' type='button' data-asec='settings'>الإعدادات</button>
+</aside>
+<div><div class='abar'>
+<button class='iconbtn drawbtn' id='drawerBtn' type='button' aria-expanded='false' aria-controls='sb' aria-label='فتح قائمة الأقسام'>☰</button>
+<label class='sr' for='aq'>بحث</label>
+<div class='search'><span class='ico' aria-hidden='true'>⌕</span><input id='aq' placeholder='ابحث بدومين أو طلب أو عميل…'></div><span class='spacer'></span>
+<span class='pill p-warn'>Sandbox · غير متصل</span>
+<span class='avatar' aria-hidden='true'>M</span>
+</div>
+<div class='panel' data-apanel='overview'><div class='kpis'>
+<div class='kpi'><div class='k'>إجمالي الدومينات</div><div class='v'>1,248</div><div class='d'>+32 هذا الشهر</div></div><div class='kpi'><div class='k'>طلبات جديدة</div><div class='v'>18</div><div class='d'>آخر 24 ساعة</div></div><div class='kpi'><div class='k'>تجديدات قادمة</div><div class='v'>96</div><div class='d' style='color:var(--warn)'>12 خلال 30 يوم</div></div><div class='kpi'><div class='k'>طلبات متعثرة</div><div class='v'>7</div><div class='d' style='color:var(--danger)'>3 فشل دفع</div></div><div class='kpi'><div class='k'>هامش الشهر</div><div class='v'>2,410$</div><div class='d'>متوسط 3.40$ / دومين</div></div></div>
+<div class='sec'><h3 style='font-size:15px'>الإيرادات والهامش · آخر 6 أشهر <span class='dim' style='font-weight:400;font-size:12px'>(بيانات تجريبية)</span></h3><div class='sx plain' style='margin-top:10px'><table><thead><tr><th>الشهر</th><th>الإيرادات</th><th>التكلفة</th><th>الهامش</th><th>متوسط الهامش</th></tr></thead><tbody id='revBody'></tbody></table></div></div>
+</div>
+<div class='panel' data-apanel='domains' hidden><div class='filters'><button class='fchip' aria-pressed='true' type='button'>الكل</button><button class='fchip' aria-pressed='false' type='button'>مسجّل</button><button class='fchip' aria-pressed='false' type='button'>قيد النقل</button><button class='fchip' aria-pressed='false' type='button'>ينتهي قريبًا</button><button class='fchip' aria-pressed='false' type='button'>فشل الدفع</button></div><div class='sx plain'><table><thead><tr><th>الدومين</th><th>العميل</th><th>حالة التسجيل</th><th>الانتهاء</th><th>التجديد</th><th>التكلفة</th><th>الهامش</th><th>تفاصيل</th></tr></thead><tbody id='domBody'></tbody></table></div><div class='scrollhint'>اسحب الجدول أفقيًا لعرض بقية الأعمدة.</div></div>
+<div class='panel' data-apanel='orders' hidden><div class='filters'><button class='fchip' aria-pressed='true' type='button'>الكل</button><button class='fchip' aria-pressed='false' type='button'>جديد</button><button class='fchip' aria-pressed='false' type='button'>بانتظار الدفع</button><button class='fchip' aria-pressed='false' type='button'>قيد التنفيذ</button><button class='fchip' aria-pressed='false' type='button'>مكتمل</button><button class='fchip' aria-pressed='false' type='button'>ملغى</button><button class='fchip' aria-pressed='false' type='button'>فاشل</button></div><div class='sx plain'><table><thead><tr><th>رقم الطلب</th><th>الدومين</th><th>العميل</th><th>الحالة</th><th>المبلغ</th><th>التاريخ</th></tr></thead><tbody id='ordBody'></tbody></table></div><div class='scrollhint'>اسحب الجدول أفقيًا لعرض بقية الأعمدة.</div></div>
+<div class='panel' data-apanel='customers' hidden><div class='sx plain'><table><thead><tr><th>العميل</th><th>بيانات الحساب</th><th>الدومينات المملوكة</th><th>الطلبات</th><th>حالة الحساب</th></tr></thead><tbody id='cusBody'></tbody></table></div><div class='scrollhint'>اسحب الجدول أفقيًا لعرض بقية الأعمدة.</div></div>
+<div class='panel' data-apanel='pricing' hidden><div class='sec'>
+<h3 style='font-size:15px'>قواعد التسعير المعتمدة</h3><p class='dim' style='font-size:13px;margin-top:6px'>الهامش بيتحسب على إجمالي تكلفة المزوّد بالدولار، ويُطبَّق على التسجيل والتجديد والنقل بنفس القواعد.</p><div class='sx plain' style='margin-top:12px'><table><thead><tr><th>تكلفة المزوّد</th><th>الهامش المطبَّق</th><th>مثال (تكلفة → بيع)</th></tr></thead><tbody><tr><td>أقل من 8$</td><td>هامش ثابت 2.50$</td><td class='num'>6.00 → 8.50</td></tr><tr><td>من 8$ إلى أقل من 15$</td><td>هامش ثابت 3.00$</td><td class='num'>9.20 → 12.20</td></tr><tr><td>من 15$ إلى 30$ شاملًا</td><td>هامش ثابت 4.00$</td><td class='num'>22.00 → 26.00</td></tr><tr><td>أكثر من 30$</td><td>15% بحد أدنى 4.00$</td><td class='num'>40.00 → 46.00</td></tr></tbody></table></div></div>
+<div class='sec'><h3 style='font-size:15px'>التكلفة مقابل سعر البيع والهامش <span class='dim' style='font-weight:400;font-size:12px'>(بيانات تجريبية)</span></h3><div class='sx plain' style='margin-top:12px'><table><thead><tr><th>الامتداد</th><th>تكلفة المزوّد</th><th>سعر البيع</th><th>الهامش</th><th>الشريحة</th></tr></thead><tbody id='priBody'></tbody></table></div><div class='okbox' style='margin-top:12px'>التكلفة والهامش <b>يظهران في لوحة الإدارة فقط</b>، ومش بيظهروا في واجهة العميل.</div></div>
+</div>
+<div class='panel' data-apanel='provider' hidden><div class='sec'>
+<div class='two'><div class='card' style='background:var(--surface-2)'>
+<h3 style='font-size:15px'>حالة المزوّد</h3><div class='mini' style='margin-top:12px;background:transparent;border:0'><div class='ln'><span class='muted'>اسم المزوّد</span><span>Openprovider</span></div><div class='ln'><span class='muted'>حالة الاتصال</span><span class='pill p-warn'>غير متصل</span></div><div class='ln'><span class='muted'>حالة Sandbox</span><span class='pill p-mut'>لم يُفتح</span></div><div class='ln'><span class='muted'>آخر اختبار اتصال</span><span class='mono'>—</span></div></div>
+<div class='notebox' style='margin-top:12px'>مفيش حساب مفعّل ومفيش اختبار اتصال حقيقي. الفتح أو أي رسوم = موافقة منفصلة من صاحب المشروع.</div></div>
+<div class='card' style='background:var(--surface-2)'><h3 style='font-size:15px'>سجل أخطاء الاتصال</h3><div class='empty' style='border:1px dashed var(--line);border-radius:var(--r-md);margin-top:12px;padding:24px 16px'><div class='mark' aria-hidden='true'></div><div style='color:var(--text-1);font-weight:700'>سجل فاضي</div><div style='font-size:13px;margin-top:6px'>مفيش أي محاولة اتصال مسجّلة، لأن المزوّد لسه غير متصل.</div></div>
+</div></div>
+</div></div>
+<div class='panel' data-apanel='audit' hidden><div class='filters'><button class='fchip' aria-pressed='true' type='button'>كل العمليات</button><button class='fchip' aria-pressed='false' type='button'>تسجيل</button><button class='fchip' aria-pressed='false' type='button'>تجديد</button><button class='fchip' aria-pressed='false' type='button'>تعديل بيانات</button></div><div class='sx plain'><table><thead><tr><th>المستخدم</th><th>نوع العملية</th><th>التاريخ والوقت</th><th>العنصر المتأثر</th><th>النتيجة</th></tr></thead><tbody id='audBody'></tbody></table></div><div class='scrollhint'>اسحب الجدول أفقيًا لعرض بقية الأعمدة.</div></div>
+<div class='panel' data-apanel='settings' hidden><div class='sec'>
+<div class='two'><div class='card' style='background:var(--surface-2)'>
+<h3 style='font-size:15px'>إعدادات المنصة</h3><div class='mini' style='margin-top:12px;background:transparent;border:0'><div class='ln'><span class='muted'>العملات المدعومة</span><span class='mono'>USD · EGP</span></div><div class='ln'><span class='muted'>اللغات</span><span>العربية (RTL) · English (LTR)</span></div><div class='ln'><span class='muted'>مصدر سعر الصرف</span><span class='pill p-warn'>بانتظار الاعتماد</span></div></div>
+</div><div class='card' style='background:var(--surface-2)'><h3 style='font-size:15px'>الإشعارات والأمان</h3><div style='margin-top:12px;display:grid;gap:12px'><div class='stack' style='justify-content:space-between'><span class='lbl'>تنبيه العميل قبل التجديد</span><button class='switch' type='button' role='switch' aria-checked='true' aria-label='تنبيه العميل قبل التجديد'></button></div><div class='stack' style='justify-content:space-between'><span class='lbl'>تنبيه الأدمن عند فشل الدفع</span><button class='switch' type='button' role='switch' aria-checked='true' aria-label='تنبيه الأدمن عند فشل الدفع'></button></div><div class='stack' style='justify-content:space-between'><span class='lbl'>تسجيل كل عملية في السجل</span><button class='switch' type='button' role='switch' aria-checked='true' aria-label='تسجيل كل عملية في السجل'></button></div><div class='stack' style='justify-content:space-between'><span class='lbl'>التحقق بخطوتين للفريق</span><button class='switch' type='button' role='switch' aria-checked='false' aria-label='التحقق بخطوتين للفريق'></button></div></div>
+</div></div>
+</div></div>
+</div></div>
+</div></section>
+<section id='ltr'><span class='eyebrow'>07 · RTL / LTR</span>
+<h2 class='h2'>نفس المكوّنات في الاتجاهين</h2><p class='sub'>زر <span class='mono'>EN / LTR</span> فوق بيقلب الصفحة كلها، والاتجاه بيتغير بمنطق start / end.</p><div class='two' style='margin-top:24px'><div class='card ltr'>
+<h3>Domain search</h3><p class='hint'>Left-to-right layout, same tokens and components.</p><div class='search'><span class='ico' aria-hidden='true'>⌕</span><input placeholder='Find your domain…' aria-label='Domain name'><button class='btn btn-primary' type='button'>Search</button></div><div class='legend' style='margin-top:16px'><span class='pill p-ok'>Registered</span><span class='pill p-info'>Transferring</span><span class='pill p-warn'>Expiring soon</span><span class='pill p-bad'>Payment failed</span>
+</div><div class='mini' style='margin-top:16px'><div class='h'>migo-example.com</div><div class='b'><div class='ln'><span class='muted'>Renewal price</span><span class='mono'>14.99 USD</span></div><div class='ln'><span class='muted'>Expires</span><span class='mono'>2027-04-12</span></div></div>
+</div></div>
+<div class='card'><h3>قواعد الاتجاه</h3><ul class='muted' style='margin:12px 0 0;padding-inline-start:18px;font-size:13.5px;line-height:2.1'><li>الأرقام والتواريخ تفضل <span class='mono'>2027-04-12</span> في الاتجاهين.</li><li>أيقونات الاتجاه (سهم الرجوع، «›») بتنعكس تلقائيًا.</li><li>الأسماء والمسارات تفضل <span class='mono'>LTR</span> جوه نص عربي.</li><li>مفيش محاذاة ناقصة ولا نص مقلوب على أي مقاس.</li></ul>
+</div></div>
+</section>
+<section style='border-bottom:0'><span class='eyebrow'>الخطوة الجاية</span>
+<h2 class='h2'>المراجعة والاعتماد</h2><p class='lead'>راجع: تجربة الهاتف، حالات البحث الخمسة، فصل الأسعار، صفحات المنصة التسعة، ولوحة الإدارة. أي تعديل (ترتيب · مسافة · مكوّن · لون) يتقال وأنا أعدّله. والتصميم الكامل مبيبدأش قبل اعتماد المعاينة دي.</p><div class='stack' style='margin-top:20px'><button class='btn btn-primary demo-action' type='button' data-toast='سجّلنا ملاحظتك للاعتماد (تجريبي)'>اعتمدت المعاينة</button>
+<button class='btn btn-ghost demo-action' type='button' data-toast='اكتب ملاحظتك وتوصلني (تجريبي)'>عندي ملاحظات</button>
+</div></section>
+</div></main>
+<footer class='wrap'><div>Migo Domains · معاينة تصميم v2 · مبنية على <span class='mono'>docs/DESIGN_SYSTEM.md</span> · 8 نوفمبر 2026 · كل البيانات تجريبية للعرض فقط.</div></footer>
+<div id='toaster' aria-live='polite' aria-atomic='false'></div>
+<div class='overlay' id='confirmDialog' role='dialog' aria-modal='true' aria-labelledby='cdTitle'><div class='modal'>
+<h3 id='cdTitle' style='font-size:17px'>متأكد إنك عايز تلغي طلب التسجيل؟</h3><p class='muted' style='font-size:13.5px;margin-top:8px'>لو الدومين اتحجز بالفعل، الرسوم ممكن ما ترجعش حسب سياسة الاسترداد. العملية هتتسجّل في السجل مع المستخدم والوقت.</p><div class='stack' style='margin-top:16px;justify-content:flex-end'><button class='btn btn-ghost' type='button' data-close>رجوع</button>
+<button class='btn btn-danger demo-action' type='button' data-close data-toast='تجريبي · إلغاء الطلب اتنفّذ'>نعم، الغِ الطلب</button>
+</div></div>
+</div>
+<div class='overlay' id='drawerDemo' role='dialog' aria-modal='true' aria-labelledby='ddTitle'><div class='modal'>
+<h3 id='ddTitle' style='font-size:17px'>Drawer نموذجي</h3><p class='muted' style='font-size:13.5px;margin-top:8px'>نفس نمط قائمة الهاتف: بيفتح من الجانب، بيقفل بـ Escape أو بالضغط بره، وبيرجّع التركيز للزر.</p><div class='stack' style='margin-top:16px;justify-content:flex-end'><button class='btn btn-secondary' type='button' data-close>إغلاق</button></div></div>
+</div>
+<script src='app.js'></script>
+</body></html>
