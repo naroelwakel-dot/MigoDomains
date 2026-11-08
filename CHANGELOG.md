@@ -4,6 +4,14 @@
 
 ## [غير مُصدَر]
 
+### مخطط قاعدة البيانات كـmigrations — اتكتب واترفع للمراجعة (8 نوفمبر 2026) 🗄️
+- **جديد:** `database/migrations/` — **11 ملف SQL** بترتيب رقمي إلزامي، بيعملوا **29 جدولًا + view واحد** لمشروع Supabase `migo-domains`. (0001 الامتدادات والدوال · 0002 الهوية · 0010 الكتالوج · 0011 التسعير · 0020 العملاء · 0030 العروض والطلبات · 0040 الدفع · 0050 الدومينات · 0060 DNS · 0070 أحداث المزوّد والتدقيق · 0090 التشديد).
+- **الحماية:** RLS مفعّلة على كل جدول حسّاس بالأساس deny (**47 سياسة**) · `domain_quotes` لقطة غير قابلة للتغيير بتريجر · `payment_webhooks`/`provider_events`/`audit_logs` append-only بتريجر صريح · سجلات سلطة DNS (NS · CAA) محمية · `CHECK` على كل الحالات (الدومين 8 · أقفال الـregistry 4 · أسباب النقل 6) · بيانات الموزّع مرفوضة كمالك رسمي.
+- **فصل الأسرار:** رموز النقل في جدول منفصل `domain_auth_codes` **مشفّر** وبدون أي سياسة قراءة للعميل، وتكلفة/هامش العرض في `domain_quotes` (للمسؤول فقط) مع view `domain_quotes_client` بيعرّض الأعمدة الآمنة بس.
+- **توحيد القائمتين:** 17 جدولًا في `docs/DATABASE_SCHEMA.md` + 24 كيانًا فعليًا في `docs/phase-zero/DATABASE_ARCHITECTURE.md` (عنوانه «25») اتوفّقوا في مخطط واحد — والفرق `domain_orders` انقسم لـ`orders` + `order_items`، و`renewals` بقى `domain_renewals`.
+- **التوثيق:** `docs/DATABASE_MIGRATIONS.md` (جديد) · `database/migrations/README.md` · `docs/DATABASE_SCHEMA.md` (الحالة بقت DOCUMENTED · NOT RUN).
+- **الحدود:** **مفيش تنفيذ.** مفيش `psql` ولا Supabase SQL Editor اشتغل، والمراجعة **نصية** (توازن · أسماء · مراجع · قيود · منع أسرار) مش تشغيل على محرّك PostgreSQL. الـseed فاضي، والربط بالـBackend والتشفير الفعلي لسه ناقصين. التنفيذ **APPROVAL REQUIRED**.
+
 ### محتوى لوحة الإدارة — اتعمل واترفع (8 نوفمبر 2026) 🧮
 - **اتبنى:** `frontend/admin.html` + `frontend/assets/js/admin.js` (جديد) + `frontend/assets/js/admin-data.js` (جديد) + `frontend/assets/css/admin.css`.
 - **الأقسام الثمانية المعتمدة كاملة:** نظرة عامة · الدومينات · الطلبات · العملاء · التسعير · المزوّد/Sandbox · السجلات · الإعدادات.
