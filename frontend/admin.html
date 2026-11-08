@@ -32,8 +32,8 @@
         <span class="pill warn">بيانات تجريبية</span>
       </div>
 
-      <!-- ملاحظة: auth-guard.js بيحمي بالجلسة بس. فحص صلاحية الإدارة (is_admin)
-           لسه مطلوب قبل الاعتماد على الصفحة دي في الإنتاج. -->
+      <!-- ملاحظة: القفل هنا شكلي (بيقفل الواجهة بس). الحماية الحقيقية هي
+           RLS على الجداول + دالة public.is_admin() في قاعدة البيانات. -->
       <div id="guardNote" class="card" hidden style="background:var(--surface-2);margin-bottom:var(--s4)">
         <strong style="font-size:var(--fs-sm)">وضع تجريبي</strong>
         <p class="muted mt-2" style="font-size:var(--fs-sm)">تسجيل الدخول لسه غير مُهيّأ، فالصفحة دي بتعرض بيانات تجريبية. لما يتم الربط، هتطلب تسجيل دخول الأول.</p>
@@ -44,7 +44,15 @@
         <button class="btn btn-ghost btn-sm" type="button" data-signout>خروج</button>
       </div>
 
-      <div class="admin-shell">
+      <p id="adminCheckNote" class="pill warn" hidden style="margin-bottom:var(--s4)"></p>
+
+      <div id="adminDeny" class="card" hidden style="margin-bottom:var(--s4)">
+        <strong>مش مسموح</strong>
+        <p class="muted mt-2" style="font-size:var(--fs-sm)">حسابك مسجّل بس مش إداري، فمش من حقك تفتح لوحة الإدارة. لو ده خطأ، كلّم صاحب المشروع.</p>
+        <a class="btn btn-ghost mt-4" href="account.html">رجوع لحسابي</a>
+      </div>
+
+      <div class="admin-shell" id="adminShell">
         <!-- التنقل الجانبي: بيانات القسم في data-apanel -->
         <nav class="admin-side" aria-label="أقسام الإدارة">
           <a href="#overview" data-apanel="overview">نظرة عامة</a>
@@ -176,5 +184,6 @@
   <script src="assets/js/app.js"></script>
   <script src="assets/js/admin.js"></script>
   <script src="assets/js/auth-guard.js"></script>
+  <script src="assets/js/admin-guard.js"></script>
 </body>
 </html>
