@@ -221,3 +221,95 @@ test("مسار المعاينة هو الوحيد اللي بيطلّع هامش
   assert.deepEqual(pricingLeakPaths, ["/admin/price-preview"]);
   assert.equal(ROUTES.find((r) => r.path === "/admin/price-preview").auth, "admin");
 });
+
+/* ------------------------------ سجلات DNS ------------------------------ */
+
+/** بيسجّل دومين مملوك عبر طبقة الخدمة (مسار الدفع كامل)، عشان نختبر مسارات DNS. */
+async function ownedDomain(service, payments, domain) {
+  const created = await service.createOrder({ domain, registrant: REGISTRANT, allowMock: true, claims: USER });
+  const intent = service.createPaymentIntent({ orderId: created.orderId, claims: USER });
+  const event = { type: "payment.succeeded", orderId: created.orderId, intentId: intent.intentId, amount: intent.amount, currency: intent.currency, occurredAt: NOW().toISOString() };
+  const raw = JSON.stringify(event);
+  const signature = await payments.sign(raw);
+  await service.confirmPayment({ rawBody: raw, signature });
+  await service.fulfill({ orderId: created.orderId, allowMock: true, claims: USER });
+  return { "x-migo-claims": JSON.stringify(USER) };
+}
+
+test("GET /dns/records محمي، وبيقرا سجلات الدومين المملوك", async () => {
+  const { app } = makeApp();
+  assert.equal(matchRoute("GET", "/dns/records").route.auth, "user");
+
+  assert.equal((await app.handle(req("GET", "/dns/records?domain=x.com"))).status, 401);
+
+  const auth = { "x-migo-claims": JSON.stringify(USER) };
+  const res = await app.handle(req("GET", "/dns/records?domain=api-dns.com", { headers: auth }));
+  assert.equal(res.status, 404, "دومين مش مسجّل عندنا");
+});
+
+test("POST /dns/records: العميل بيعدّل سجلاته، وسجلات السلطة مرفوضة 400", async () => {
+  const { app, payments, service } = makeApp();
+  assert.equal(matchRoute("POST", "/dns/records").route.auth, "user");
+
+  const auth = await ownedDomain(service, payments, "api-dns2.com");
+
+  const ok = await app.handle(req("POST", "/dns/records", { body: { domain: "api-dns2.com", records: [{ type: "A", name: "@", value: "203.0.113.5", ttl: 300 }] }, headers: auth }));
+  assert.equal(ok.status, 200);
+  const body = await jsonOf(ok);
+  assert.equal(body.ok, true);
+  assert.ok(body.records.some((r) => r.type === "A" && r.value === "203.0.113.5"));
+  assert.ok(body.records.some((r) => r.type === "NS" && r.authority === true), "سجلات السلطة لازم تفضل");
+
+  const ns = await app.handle(req("POST", "/dns/records", { body: { domain: "api-dns2.com", records: [{ type: "NS", name: "@", value: "ns9.x.test", ttl: 3600 }] }, headers: auth }));
+  assert.equal(ns.status, 400);
+  assert.equal((await jsonOf(ns)).error.code, "VALIDATION");
+});
+
+test("GET /dns/records: عميل تاني مش بيشوف سجلات حد", async () => {
+  const { app, payments, service } = makeApp();
+  await ownedDomain(service, payments, "api-dns3.com");
+  const other = { "x-migo-claims": JSON.stringify({ sub: "user-2" }) };
+  const res = await app.handle(req("GET", "/dns/records?domain=api-dns3.com", { headers: other }));
+  assert.equal(res.status, 403);
+  assert.equal((await jsonOf(res)).error.code, "FORBIDDEN");
+});
+
+test("مسارات /domain/:name محمية، والمالك بس بيقدر", async () => {
+  const { app, payments, service } = makeApp();
+  for (const [m, p] of [["GET", "/domain/x.com"], ["POST", "/domain/x.com/lock"], ["POST", "/domain/x.com/dnssec"], ["GET", "/domain/x.com/transfer-eligibility"]]) {
+    assert.equal(matchRoute(m, p).route.auth, "user", p);
+    assert.equal((await app.handle(req(m, p, { body: m === "POST" ? {} : undefined }))).status, 401, p);
+  }
+
+  const auth = await ownedDomain(service, payments, "api-sec.com");
+
+  const details = await app.handle(req("GET", "/domain/api-sec.com", { headers: auth }));
+  assert.equal(details.status, 200);
+  const d = (await jsonOf(details)).details;
+  assert.equal(d.domain, "api-sec.com");
+  assert.equal("authCode" in d, false, "رمز النقل ممنوع يظهر هنا");
+
+  const lock = await app.handle(req("POST", "/domain/api-sec.com/lock", { body: { locked: false }, headers: auth }));
+  assert.equal(lock.status, 200);
+  assert.equal((await jsonOf(lock)).locked, false);
+
+  const dnssec = await app.handle(req("POST", "/domain/api-sec.com/dnssec", { body: { enabled: true }, headers: auth }));
+  assert.equal(dnssec.status, 200);
+  assert.equal((await jsonOf(dnssec)).dnssec, true);
+
+  const elig = await app.handle(req("GET", "/domain/api-sec.com/transfer-eligibility", { headers: auth }));
+  assert.equal(elig.status, 200);
+  const e = await jsonOf(elig);
+  assert.equal(e.ok, true);
+  assert.equal(e.eligible, false, "لسه فيه DNSSEC مفتوح ولسه ما مرّوش 60 يوم");
+  assert.ok(Array.isArray(e.reasons) && e.reasons.length >= 1);
+});
+
+test("GET /domain/:name: عميل تاني = 403", async () => {
+  const { app, payments, service } = makeApp();
+  await ownedDomain(service, payments, "api-sec2.com");
+  const other = { "x-migo-claims": JSON.stringify({ sub: "user-2" }) };
+  const res = await app.handle(req("GET", "/domain/api-sec2.com", { headers: other }));
+  assert.equal(res.status, 403);
+  assert.equal((await jsonOf(res)).error.code, "FORBIDDEN");
+});
