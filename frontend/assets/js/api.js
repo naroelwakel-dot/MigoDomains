@@ -179,6 +179,16 @@
       return request("GET", "/domain/" + encodeURIComponent(domain) + "/auth-code");
     },
 
+    /* تعديل جهات الاتصال: الخدمة/المزوّد بترفض بيانات الموزّع كمالك رسمي. */
+    updateContacts: function (domain, contacts) {
+      return request("POST", "/domain/" + encodeURIComponent(domain) + "/contacts", { body: { contacts: contacts } });
+    },
+
+    /* تجهيز النقل الخارج: فحص أهلية + فك القفل. مش بيدّعي إن النقل بدأ. */
+    prepareTransferOut: function (domain) {
+      return request("POST", "/domain/" + encodeURIComponent(domain) + "/transfer-out", { body: {} });
+    },
+
     /* معاينة تسعير للإدارة: الهامش وسعر البيع بيتحسبوا على الخدمة بمحرك
        التسعير الرسمي. ممنوع أي حساب في المتصفح. المسار للإدارة بس. */
     pricePreview: function (costUsd, fxRate) {
