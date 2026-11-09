@@ -41,7 +41,7 @@
 
       <div id="demoNote" class="card mt-4" style="background:var(--surface-2)">
         <strong style="font-size:var(--fs-sm)">وضع تجريبي</strong>
-        <p class="muted mt-2" style="font-size:var(--fs-sm)">الصفحة دي بتعرض دومين تجريبي، ومفيش أي اتصال بمزوّد تسجيل حقيقي. التعديلات مش بتتحفظ (بمجرد ما تسيب الصفحة بترجع زي ما كانت).</p>
+        <p class="muted mt-2" style="font-size:var(--fs-sm)">الصفحة دي بتعرض دومين تجريبي. <strong>حفظ الـNameservers هو الإجراء الوحيد المتوصل بالخدمة فعلاً</strong>، والخدمة هي اللي بتقرر تقبله أو ترفضه. باقي التعديلات (سجلات DNS · قفل النقل · DNSSEC · النقل) لسه عرض تجريبي ومش بتتحفظ.</p>
       </div>
 
       <div class="grid grid-4 mt-5">
@@ -126,7 +126,7 @@
                   <span class="hint" id="nsHint">مثال: ns1.migo-dns.test</span>
                 </div>
                 <div class="row wrap-flex mt-4">
-                  <button class="btn btn-primary" type="submit">حفظ الـNameservers</button>
+                  <button class="btn btn-primary" type="submit" id="nsSubmit">حفظ الـNameservers</button>
                   <button class="btn btn-ghost" type="button" id="nsReset">استعادة الافتراضي</button>
                 </div>
               </form>
@@ -253,7 +253,10 @@
   </footer>
 
   <div class="scrim" data-dismiss></div>
+  <script src="assets/js/config.js"></script>
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/api.js"></script>
   <script src="assets/js/manage.js"></script>
 </body>
 </html>
