@@ -287,3 +287,155 @@ test("previewPrice مسجّل في سجل التدقيق باسم المنادي
   assert.ok(entry, "مفيش سجل للمعاينة");
   assert.equal(entry.actor, "admin-1");
 });
+
+/* --------------------------- سجلات DNS --------------------------- */
+
+async function ownedDomain(service, payments, domain = "shop-migo.com") {
+  const { created } = await paidOrder(service, payments, { domain });
+  await service.fulfill({ orderId: created.orderId, allowMock: true, claims: USER });
+  return created;
+}
+
+test("getDnsRecords: صاحب الدومين بس، وبدون أي تسريب للتكلفة", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+  const out = await service.getDnsRecords({ domain: "shop-migo.com", claims: USER });
+  assert.equal(out.ok, true);
+  assert.ok(Array.isArray(out.records) && out.records.length >= 1);
+  assert.ok(out.records.some((r) => r.type === "NS" && r.authority === true), "لازم يكون فيه سجلات سلطة");
+  for (const r of out.records) {
+    assert.deepEqual(Object.keys(r).sort(), ["authority", "id", "name", "ttl", "type", "value"]);
+  }
+  await assert.rejects(() => service.getDnsRecords({ domain: "shop-migo.com", claims: { sub: "user-2" } }), (e) => e.code === C.FORBIDDEN);
+  await assert.rejects(() => service.getDnsRecords({ domain: "nope-migo.com", claims: USER }), (e) => e.code === C.NOT_FOUND);
+  await assert.rejects(() => service.getDnsRecords({ domain: "shop-migo.com" }), (e) => e.code === C.UNAUTHENTICATED);
+});
+
+test("updateDnsRecords: استبدال كامل للـzone، وسجلات السلطة محفوظة", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+  const out = await service.updateDnsRecords({
+    domain: "shop-migo.com",
+    claims: USER,
+    records: [
+      { type: "A", name: "@", value: "203.0.113.7", ttl: 300 },
+      { type: "TXT", name: "@", value: "v=spf1 -all", ttl: 3600 },
+    ],
+  });
+  assert.equal(out.replaced, true);
+  const normal = out.records.filter((r) => !r.authority);
+  assert.deepEqual(normal.map((r) => r.value).sort(), ["203.0.113.7", "v=spf1 -all"]);
+  assert.ok(out.records.some((r) => r.type === "NS" && r.authority === true), "سجلات السلطة لازم تفضل");
+
+  // الإرسال التاني بيشيل اللي مش موجود.
+  const second = await service.updateDnsRecords({
+    domain: "shop-migo.com",
+    claims: USER,
+    records: [{ type: "A", name: "@", value: "203.0.113.8", ttl: 300 }],
+  });
+  assert.deepEqual(second.records.filter((r) => !r.authority).map((r) => r.value), ["203.0.113.8"]);
+});
+
+test("updateDnsRecords: سجلات السلطة مرفوضة قبل ما توصل للمزوّد", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+  await assert.rejects(
+    () => service.updateDnsRecords({ domain: "shop-migo.com", claims: USER, records: [{ type: "NS", name: "@", value: "ns1.x.test", ttl: 3600 }] }),
+    (e) => e.code === C.VALIDATION && /NS/.test(e.message)
+  );
+  await assert.rejects(
+    () => service.updateDnsRecords({ domain: "shop-migo.com", claims: USER, records: [{ type: "CAA", name: "@", value: "0 issue \"ca.test\"", ttl: 3600 }] }),
+    (e) => e.code === C.VALIDATION
+  );
+});
+
+test("updateDnsRecords: التحقق والصلاحيات", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+  await assert.rejects(() => service.updateDnsRecords({ domain: "shop-migo.com", claims: USER, records: "bad" }), (e) => e.code === C.VALIDATION);
+  await assert.rejects(
+    () => service.updateDnsRecords({ domain: "shop-migo.com", claims: USER, records: [{ type: "A", name: "@", value: "999.1.1.1", ttl: 300 }] }),
+    (e) => e.code === C.VALIDATION && /A/.test(e.message)
+  );
+  await assert.rejects(
+    () => service.updateDnsRecords({ domain: "shop-migo.com", claims: { sub: "user-2" }, records: [] }),
+    (e) => e.code === C.FORBIDDEN
+  );
+});
+
+test("updateDnsRecords مسجّل في سجل التدقيق", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+  await service.updateDnsRecords({ domain: "shop-migo.com", claims: USER, records: [{ type: "A", name: "@", value: "203.0.113.9", ttl: 300 }] });
+  const entry = service.audit.list().filter((a) => a.action === "domain.dns_records_updated").pop();
+  assert.ok(entry, "مفيش سجل للتعديل");
+  assert.equal(entry.actor, "user-1");
+});
+
+/* ---------------- تفاصيل الدومين · الأمان · أهلية النقل ---------------- */
+
+test("getDomain: تفاصيل من الخدمة بدون تكلفة، ولصاحب الدومين بس", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+  const out = await service.getDomain({ domain: "shop-migo.com", claims: USER });
+  assert.equal(out.ok, true);
+  assert.equal(out.details.domain, "shop-migo.com");
+  assert.ok(out.details.expiresAt, "لازم يكون فيه تاريخ انتهاء");
+  assert.equal(typeof out.details.transferLock, "boolean");
+  assert.equal(typeof out.details.dnssec, "boolean");
+  assert.equal("authCode" in out.details, false, "رمز النقل ممنوع يظهر في التفاصيل");
+  for (const bad of ["cost", "margin", "wholesale", "micros"]) assert.equal(bad in out.details, false);
+
+  await assert.rejects(() => service.getDomain({ domain: "shop-migo.com", claims: { sub: "user-2" } }), (e) => e.code === C.FORBIDDEN);
+  await assert.rejects(() => service.getDomain({ domain: "shop-migo.com" }), (e) => e.code === C.UNAUTHENTICATED);
+  await assert.rejects(() => service.getDomain({ domain: "nope-migo.com", claims: USER }), (e) => e.code === C.NOT_FOUND);
+});
+
+test("setTransferLock: بيفتح ويقفل القفل عند المزوّد ويسجّل في التدقيق", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+
+  const open = await service.setTransferLock({ domain: "shop-migo.com", locked: false, claims: USER });
+  assert.equal(open.locked, false);
+  const details = await service.getDomain({ domain: "shop-migo.com", claims: USER });
+  assert.equal(details.details.transferLock, false, "الخدمة لازم تعكس القفل المفتوح");
+
+  const closed = await service.setTransferLock({ domain: "shop-migo.com", locked: true, claims: USER });
+  assert.equal(closed.locked, true);
+  assert.ok(closed.locks.includes("clientTransferProhibited"));
+
+  const entry = service.audit.list().filter((a) => a.action === "domain.lock_changed").pop();
+  assert.ok(entry && entry.actor === "user-1");
+
+  await assert.rejects(() => service.setTransferLock({ domain: "shop-migo.com", locked: false, claims: { sub: "user-2" } }), (e) => e.code === C.FORBIDDEN);
+});
+
+test("setDnssec: بيفعّل ويقفل، والتفاصيل بتعكس الحالة", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+
+  const on = await service.setDnssec({ domain: "shop-migo.com", enabled: true, claims: USER });
+  assert.equal(on.dnssec, true);
+  const details = await service.getDomain({ domain: "shop-migo.com", claims: USER });
+  assert.equal(details.details.dnssec, true);
+
+  const off = await service.setDnssec({ domain: "shop-migo.com", enabled: false, claims: USER });
+  assert.equal(off.dnssec, false);
+
+  const entry = service.audit.list().filter((a) => a.action === "domain.dnssec_changed").pop();
+  assert.ok(entry && entry.actor === "user-1");
+});
+
+test("getTransferEligibility: بتتحسب عند المزوّد، ومحسوبة مش مخزّنة", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+
+  const blocked = await service.getTransferEligibility({ domain: "shop-migo.com", claims: USER });
+  assert.equal(blocked.ok, true);
+  assert.equal(blocked.eligible, false, "الدومين لسه جديد وعليه قفل نقل");
+  assert.ok(blocked.reasons.length >= 1, "لازم يكون فيه أسباب معلنة");
+  for (const r of blocked.reasons) { assert.ok(r.code, "كل سبب ليه كود"); assert.ok(r.message, "وكل سبب ليه رسالة"); }
+
+  await assert.rejects(() => service.getTransferEligibility({ domain: "shop-migo.com", claims: { sub: "user-2" } }), (e) => e.code === C.FORBIDDEN);
+  await assert.rejects(() => service.getTransferEligibility({ domain: "shop-migo.com" }), (e) => e.code === C.UNAUTHENTICATED);
+});
