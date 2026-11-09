@@ -5,7 +5,9 @@
    (حفظ الـNameservers، سجلات DNS، قفل النقل، DNSSEC، تفاصيل الدومين،
    جهات الاتصال، رمز النقل، وأهلية النقل): لو الخدمة رفضت، الصفحة بتقول
    كده ومش بتحفظ حاجة محليًا. الفاضي من غير خدمة = عرض تجريبي معلَّم.
-   مفيش أي مفاتيح، ومفيش أي سعر محسوب هنا.
+   والأزرار اللي لسه مش موصّلة (تعديل جهات الاتصال · بدء النقل · التجديد)
+   بتقول سبب التعطّل صريح وما بتدّعيش نجاح. مفيش أي مفاتيح، ومفيش أي سعر
+   محسوب هنا.
 
    الفحص المحلي للـNameservers والـDNS **مرآة** لقواعد المزوّد
    (`providers/lib/mock.js`)، ووظيفته رد سريع للمستخدم بس — القرار النهائي
@@ -325,7 +327,7 @@
         pill(c.pill || "info", c.note) + "</div>" +
         '<div class="mt-3 row-between"><span class="muted">الاسم</span><span>' + esc(c.name) + "</span></div>" +
         '<div class="mt-2 row-between"><span class="muted">البريد</span><span class="mono">' + esc(c.email) + "</span></div>" +
-        '<button class="btn btn-sm mt-4" type="button" data-toast="تعديل بيانات ' + c.role + ' (تجريبي)">تعديل</button></div>';
+        '<button class="btn btn-sm mt-4" type="button" data-toast="تعديل بيانات ' + c.role + ' لسه مش موصّل: عقد المزوّد مافيهوش دالة تعديل جهات الاتصال">تعديل</button></div>';
     }).join("") + OWNER_CARD_HTML;
     bindOwnerCheck();
   }
@@ -506,8 +508,14 @@
       renderEligibility(r);
     }).catch(function () { renderEligibility(null); });
   }
+  /* بدء النقل مش موصّل: عقد المزوّد فيه نقل داخل بس. الصفحة بتقول كده وما بتدّعيش إن حاجة اتبعتت. */
   $("#startTransfer").addEventListener("click", function () {
-    toast("بدأ طلب نقل تجريبي · الحالة: قيد النقل (مش مكتمل)", "warn");
+    var hint = $("#transferHint");
+    if (hint) {
+      hint.className = "hint error";
+      hint.textContent = "النقل مابعتش: عقد المزوّد مافيهوش دالة نقل خارج، فمفيش طلب اتفتح على أي دومين.";
+    }
+    toast("بدء النقل مش موصّل لسه — مفيش حاجة اتبعتت", "warn");
   });
 
   /* ------------------------------------------ بيانات الدومين من الخدمة */
