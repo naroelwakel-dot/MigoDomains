@@ -97,7 +97,8 @@ test("manage.html: بيحمّل config و auth و api قبل manage.js", () => {
   assert.ok(i("config.js") < i("api.js"), "config.js لازم يجي قبل api.js");
   assert.ok(i("api.js") < i("manage.js"), "api.js لازم يجي قبل manage.js");
   assert.match(html, /الـNameservers وسجلات DNS وقفل النقل وDNSSEC وتفاصيل الدومين وجهات الاتصال ورمز النقل وأهلية النقل كلها بتيجي من الخدمة/);
-  assert.match(html, /اللي لسه عرض تجريبي: تعديل بيانات الاتصال وبدء النقل والتجديد/);
+  assert.match(html, /اللي لسه مش موصّل: تعديل بيانات الاتصال/);
+  assert.match(html, /مفيش زرار فيهم بيدّعي نجاح/);
 });
 
 test("manage.html: مفيش أسعار ثابتة في الصفحة", () => {
@@ -423,6 +424,33 @@ test("الخدمة مش مربوطة: طلب الرمز بيقول كده ومف
   await settle();
   assert.equal(ctx.__seen.length, 0);
   assert.match(ctx.__node("#authHint").textContent, /مش مربوطة/);
+});
+
+/* --------------------- اللي لسه مش موصّل: لازم يقول كده --------------------- */
+
+test("بدء النقل: بيقول إنه مش موصّل، ومفيش أي نداء للخدمة", async () => {
+  const ctx = await openDns({ eligible: true });
+  const before = ctx.__seen.length;
+  assert.equal(ctx.__node("#startTransfer").disabled, false, "الزرار لازم يبقى مفتوح لو الأهلية متحققة");
+  ctx.__click(ctx.__node("#startTransfer"));
+  await settle();
+  assert.match(ctx.__node("#transferHint").textContent, /مابعتش/);
+  assert.match(ctx.__node("#transferHint").textContent, /نقل خارج/);
+  assert.equal(ctx.__seen.length, before, "ممنوع أي نداء خدمة على إجراء مش موصّل");
+});
+
+test("manage.html: الأزرار اللي مش موصّلة مابتقولش نجاح ولا (تجريبي)", () => {
+  const html = page("manage.html");
+  assert.equal(/بدأ طلب نقل تجريبي/.test(html), false);
+  assert.equal(/data-toast="تجديد[^"]*\(تجريبي\)/.test(html), false, "زرار التجديد لسه بيوعد بنجاح تجريبي");
+  assert.match(html, /التجديد لسه مش موصّل/);
+  assert.match(html, /مستنية قرار بوابة الدفع/);
+});
+
+test("manage.js: رسالة تعديل جهات الاتصال بتقول سبب التعطّل", () => {
+  const code = codeOnly(src("manage.js"));
+  assert.match(code, /مافيهوش دالة تعديل جهات الاتصال/);
+  assert.equal(/بدأ طلب نقل تجريبي/.test(code), false, "لسه فيه رسالة نجاح تجريبية");
 });
 
 /* --------------------------------- حماية --------------------------------- */
