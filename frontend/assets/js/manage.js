@@ -3,11 +3,11 @@
    --------------------------------------------------------------------------
    كل الإجراءات الحقيقية بتتنادى على خدمة المنصة والخدمة هي المرجع
    (حفظ الـNameservers، سجلات DNS، قفل النقل، DNSSEC، تفاصيل الدومين،
-   جهات الاتصال، رمز النقل، وأهلية النقل): لو الخدمة رفضت، الصفحة بتقول
-   كده ومش بتحفظ حاجة محليًا. الفاضي من غير خدمة = عرض تجريبي معلَّم.
-   والأزرار اللي لسه مش موصّلة (تعديل جهات الاتصال · بدء النقل · التجديد)
-   بتقول سبب التعطّل صريح وما بتدّعيش نجاح. مفيش أي مفاتيح، ومفيش أي سعر
-   محسوب هنا.
+   تعديل جهات الاتصال، رمز النقل، أهلية النقل، وتجهيز النقل الخارج):
+   لو الخدمة رفضت، الصفحة بتقول كده ومش بتحفظ حاجة محليًا. الفاضي من غير
+   خدمة = عرض تجريبي معلَّم. الزرار الوحيد اللي لسه مش موصّل هو التجديد
+   (عملية مدفوعة مستنية قرار بوابة الدفع)، وبيقول سبب التعطّل صريح وما
+   بيدّعيش نجاح. مفيش أي مفاتيح، ومفيش أي سعر محسوب هنا.
 
    الفحص المحلي للـNameservers والـDNS **مرآة** لقواعد المزوّد
    (`providers/lib/mock.js`)، ووظيفته رد سريع للمستخدم بس — القرار النهائي
@@ -280,18 +280,15 @@
   });
 
   /* ------------------------------------------------------------ تبويب: جهات الاتصال */
-  var DEMO_CONTACTS = [
-    { role: "Registrant", note: "صاحب الدومين", pill: "accent", name: "أحمد العميل", email: "ahmed@example.test" },
-    { role: "Admin", note: "الإدارة التقنية", pill: "info", name: "أحمد العميل", email: "ahmed@example.test" },
-    { role: "Tech", note: "الدعم الفني", pill: "info", name: "أحمد العميل", email: "ahmed@example.test" },
-    { role: "Billing", note: "الفوترة", pill: "info", name: "أحمد العميل", email: "ahmed@example.test" }
-  ];
   var CONTACT_ROLES = [
     { key: "registrant", role: "Registrant", note: "صاحب الدومين", pill: "accent" },
     { key: "admin", role: "Admin", note: "الإدارة التقنية", pill: "info" },
     { key: "tech", role: "Tech", note: "الدعم الفني", pill: "info" },
     { key: "billing", role: "Billing", note: "الفوترة", pill: "info" }
   ];
+  var DEMO_CONTACTS = CONTACT_ROLES.map(function (r) {
+    return { key: r.key, role: r.role, note: r.note, pill: r.pill, name: "أحمد العميل", email: "ahmed@example.test" };
+  });
   var OWNER_CARD_HTML =
     '<div class="card" style="grid-column:1/-1">' +
     '<h3 class="h3">تحقق من صحة المالك</h3>' +
@@ -310,6 +307,7 @@
       var c = contacts[r.key] || null;
       if (c) any = true;
       return {
+        key: r.key,
         role: r.role,
         note: r.note,
         pill: r.pill,
@@ -320,17 +318,88 @@
     return any ? rows : null;
   }
 
+  function contactCard(c) {
+    var k = c.key;
+    return '<div class="card">' +
+      '<div class="row-between"><h3 class="h3">' + c.role + "</h3>" + pill(c.pill || "info", c.note) + "</div>" +
+      '<div class="mt-3 row-between"><span class="muted">الاسم</span><span data-cname="' + k + '">' + esc(c.name) + "</span></div>" +
+      '<div class="mt-2 row-between"><span class="muted">البريد</span><span class="mono" data-cemail="' + k + '">' + esc(c.email) + "</span></div>" +
+      '<button class="btn btn-sm mt-4" type="button" data-edit="' + k + '">تعديل</button>' +
+      '<div class="mt-3" data-editform="' + k + '" hidden>' +
+      '<div class="field"><label for="cname-' + k + '">الاسم</label>' +
+      '<input class="input" id="cname-' + k + '" value="' + esc(c.name) + '" spellcheck="false"></div>' +
+      '<div class="field mt-3"><label for="cemail-' + k + '">البريد</label>' +
+      '<input class="input" id="cemail-' + k + '" value="' + esc(c.email) + '" spellcheck="false"></div>' +
+      '<div class="row wrap-flex mt-3">' +
+      '<button class="btn btn-primary btn-sm" type="button" data-save="' + k + '">حفظ</button>' +
+      '<button class="btn btn-ghost btn-sm" type="button" data-cancel="' + k + '">إلغاء</button>' +
+      "</div></div></div>";
+  }
+
   function renderContacts(rows) {
     var list = rows || DEMO_CONTACTS;
-    $("#contactsGrid").innerHTML = list.map(function (c) {
-      return '<div class="card"><div class="row-between"><h3 class="h3">' + c.role + "</h3>" +
-        pill(c.pill || "info", c.note) + "</div>" +
-        '<div class="mt-3 row-between"><span class="muted">الاسم</span><span>' + esc(c.name) + "</span></div>" +
-        '<div class="mt-2 row-between"><span class="muted">البريد</span><span class="mono">' + esc(c.email) + "</span></div>" +
-        '<button class="btn btn-sm mt-4" type="button" data-toast="تعديل بيانات ' + c.role + ' لسه مش موصّل: عقد المزوّد مافيهوش دالة تعديل جهات الاتصال">تعديل</button></div>';
-    }).join("") + OWNER_CARD_HTML;
+    $("#contactsGrid").innerHTML = list.map(contactCard).join("") + OWNER_CARD_HTML;
     bindOwnerCheck();
   }
+
+  function setContactsHint(text, isError) {
+    var hint = $("#contactsHint");
+    if (!hint) return;
+    hint.className = isError ? "hint error" : "hint";
+    hint.textContent = text;
+  }
+
+  /** بيعرض جهات الاتصال اللي **الخدمة** أكّدتها. */
+  function applyContacts(contacts) {
+    var rows = contactsFromService(contacts);
+    if (rows) renderContacts(rows);
+  }
+
+  function submitContact(key) {
+    var nameInput = document.getElementById("cname-" + key);
+    var emailInput = document.getElementById("cemail-" + key);
+    var name = nameInput ? String(nameInput.value || "").trim() : "";
+    var email = emailInput ? String(emailInput.value || "").trim() : "";
+    if (!name || !email) { setContactsHint("لازم اسم وبريد للجهة دي.", true); return; }
+
+    var svc = platformService();
+    if (!svc.ok) { setContactsHint(svc.message, true); return; }
+
+    setContactsHint("جاري الإرسال للخدمة...", false);
+    var payload = {};
+    payload[key] = { name: name, email: email };
+    svc.api.updateContacts(STATE.name, payload).then(function (res) {
+      applyContacts(res && res.contacts);
+      setContactsHint("الخدمة أكّدت تعديل جهة الاتصال.", false);
+      toast("الخدمة حدّثت جهة الاتصال", "ok");
+    }).catch(function (err) {
+      setContactsHint("الخدمة رفضت التعديل: " + ((err && err.message) || "خطأ غير متوقع") + (err && err.code ? " (" + err.code + ")" : ""), true);
+      toast("الخدمة رفضت التعديل: مفيش حاجة اتحفظت", "danger");
+    });
+  }
+
+  /* أزرار الكروت بتتبني من جديد مع كل رسم، فبنربط مستمع واحد على الحاوية. */
+  $("#contactsGrid").addEventListener("click", function (e) {
+    var edit = e.target.closest("[data-edit]");
+    if (edit) {
+      var k = edit.getAttribute("data-edit");
+      var form = document.querySelector('[data-editform="' + k + '"]');
+      if (form) form.hidden = false;
+      edit.hidden = true;
+      return;
+    }
+    var cancel = e.target.closest("[data-cancel]");
+    if (cancel) {
+      var ck = cancel.getAttribute("data-cancel");
+      var cf = document.querySelector('[data-editform="' + ck + '"]');
+      if (cf) cf.hidden = true;
+      var cb = document.querySelector('[data-edit="' + ck + '"]');
+      if (cb) cb.hidden = false;
+      return;
+    }
+    var save = e.target.closest("[data-save]");
+    if (save) submitContact(save.getAttribute("data-save"));
+  });
 
   function checkOwner() {
     var v = $("#ownerTry").value.trim().toLowerCase();
@@ -508,14 +577,45 @@
       renderEligibility(r);
     }).catch(function () { renderEligibility(null); });
   }
-  /* بدء النقل مش موصّل: عقد المزوّد فيه نقل داخل بس. الصفحة بتقول كده وما بتدّعيش إن حاجة اتبعتت. */
+  /* تجهيز النقل الخارج: فحص أهلية + فك القفل على الخدمة. مش بيدّعي إن النقل
+     بدأ — النقل بيبدأ من المسجّل المستلم، ورمز النقل من تبويب الأمان. */
   $("#startTransfer").addEventListener("click", function () {
     var hint = $("#transferHint");
-    if (hint) {
-      hint.className = "hint error";
-      hint.textContent = "النقل مابعتش: عقد المزوّد مافيهوش دالة نقل خارج، فمفيش طلب اتفتح على أي دومين.";
-    }
-    toast("بدء النقل مش موصّل لسه — مفيش حاجة اتبعتت", "warn");
+    var svc = platformService();
+    if (!svc.ok) { if (hint) { hint.className = "hint error"; hint.textContent = svc.message; } return; }
+
+    var btn = $("#startTransfer");
+    if (btn) btn.disabled = true;
+    if (hint) { hint.className = "hint"; hint.textContent = "جاري فحص الأهلية وفك القفل على الخدمة..."; }
+
+    svc.api.prepareTransferOut(STATE.name).then(function (res) {
+      if (btn) btn.disabled = false;
+      if (res && res.status === "READY_TO_TRANSFER") {
+        if (res.unlocked) { STATE.lock = false; renderSecurity(); }
+        if (hint) {
+          hint.className = "hint";
+          hint.textContent = "الخدمة جهّزت النقل: القفل " + (res.unlocked ? "اتفك على الخدمة" : "مفتوح أصلاً") +
+            ". النقل بيبدأ من المسجّل المستلم، ورمز النقل من تبويب الأمان.";
+        }
+        toast("الخدمة جهّزت النقل — اطلب رمز النقل من تبويب الأمان", "ok");
+        refreshEligibility();
+      } else {
+        var reasons = (res && res.reasons) || [];
+        if (hint) {
+          hint.className = "hint error";
+          hint.textContent = "الخدمة رفضت تجهيز النقل" +
+            (reasons.length ? ": " + reasons.map(function (r) { return r.message || r.code; }).join(" · ") : ".");
+        }
+        toast("الخدمة رفضت تجهيز النقل", "danger");
+      }
+    }).catch(function (err) {
+      if (btn) btn.disabled = false;
+      if (hint) {
+        hint.className = "hint error";
+        hint.textContent = "الخدمة رفضت تجهيز النقل: " + ((err && err.message) || "خطأ غير متوقع") + (err && err.code ? " (" + err.code + ")" : "");
+      }
+      toast("الخدمة رفضت تجهيز النقل", "danger");
+    });
   });
 
   /* ------------------------------------------ بيانات الدومين من الخدمة */
