@@ -623,6 +623,93 @@ export function createBackendService({
     });
   }
 
+  /* ---------------- تعديل جهات الاتصال · تجهيز النقل الخارج ---------------- */
+
+  const CONTACT_ROLES = Object.freeze(["registrant", "admin", "tech", "billing"]);
+
+  /** تعديل جهات الاتصال: القرار النهائي عند المزوّد (بيانات الموزّع مرفوضة كمالك). */
+  async function updateContacts({ domain, contacts, claims } = {}) {
+    requireOwnedDomainRecord(domain, claims);
+    if (typeof provider.updateContacts !== "function") {
+      throw new ServiceError("المزوّد لا يدعم تعديل جهات الاتصال", C.PROVIDER_ERROR);
+    }
+    const name = validateDomain(domain);
+    const input = {};
+    for (const role of CONTACT_ROLES) {
+      if (contacts && contacts[role] !== undefined && contacts[role] !== null) input[role] = contacts[role];
+    }
+    if (Object.keys(input).length === 0) throw new ServiceError("مفيش أي جهة اتصال في الطلب", C.VALIDATION);
+    let out;
+    try {
+      out = await provider.updateContacts({ name, contacts: input });
+    } catch (err) {
+      const code = err && err.code ? err.code : null;
+      if (code === "CONTACT_INVALID" || code === "REGISTRANT_REQUIRED") {
+        throw new ServiceError(err.message || "بيانات جهة الاتصال مرفوضة", C.VALIDATION, { code });
+      }
+      throw new ServiceError("فشل تعديل جهات الاتصال عند المزوّد", C.PROVIDER_ERROR, { code });
+    }
+    const updatedRoles = Array.isArray(out && out.updatedRoles) ? out.updatedRoles.slice() : Object.keys(input);
+    audit.append({ action: "domain.contacts_updated", target: name, actor: claims && claims.sub, detail: { roles: updatedRoles } });
+    return Object.freeze({
+      ok: true,
+      domain: name,
+      updatedRoles,
+      contacts: Object.freeze({
+        registrant: contactOf(out && out.registrant),
+        admin: contactOf(out && out.admin),
+        tech: contactOf(out && out.tech),
+        billing: contactOf(out && out.billing),
+      }),
+    });
+  }
+
+  /**
+   * تجهيز النقل الخارج: بيفحص الأهلية عند المزوّد، ولو مؤهّل بيفكّ القفل.
+   * **ما بيدّعيش** إن النقل بدأ — النقل بيبدأ من المسجّل المستلم، وبيحتاج
+   * رمز النقل من مسار `getAuthCode`. الحالة بترجع READY_TO_TRANSFER أو BLOCKED.
+   */
+  async function startTransferOut({ domain, claims } = {}) {
+    requireOwnedDomainRecord(domain, claims);
+    if (typeof provider.checkTransferEligibility !== "function") {
+      throw new ServiceError("المزوّد لا يدعم فحص أهلية النقل", C.PROVIDER_ERROR);
+    }
+    const name = validateDomain(domain);
+    const elig = await provider.checkTransferEligibility(name);
+    const reasons = Array.isArray(elig && elig.reasons)
+      ? elig.reasons.map((r) => Object.freeze({ code: (r && r.code) || null, message: (r && r.message) || null }))
+      : [];
+    if (!elig || elig.eligible !== true) {
+      audit.append({
+        action: "domain.transfer_out_blocked",
+        outcome: "error",
+        target: name,
+        actor: claims && claims.sub,
+        detail: { reasons: reasons.map((r) => r.code) },
+      });
+      return Object.freeze({ ok: true, domain: name, status: "BLOCKED", eligible: false, reasons });
+    }
+    let unlocked = false;
+    if (typeof provider.setLock === "function" && typeof provider.getDomainDetails === "function") {
+      const details = await provider.getDomainDetails(name);
+      const locks = Array.isArray(details && details.locks) ? details.locks : [];
+      if (locks.includes(REGISTRY_LOCKS.TRANSFER_PROHIBITED)) {
+        await provider.setLock(name, false);
+        unlocked = true;
+      }
+    }
+    audit.append({ action: "domain.transfer_out_prepared", target: name, actor: claims && claims.sub, detail: { unlocked } });
+    return Object.freeze({
+      ok: true,
+      domain: name,
+      status: "READY_TO_TRANSFER",
+      eligible: true,
+      unlocked,
+      authCodeRequired: true,
+      note: "النقل بيبدأ من المسجّل المستلم، وبيحتاج رمز النقل من تبويب الأمان. الحالة بتفضل جاهزة لحد ما المستلم يبدأ الطلب.",
+    });
+  }
+
   return {
     search,
     checkAvailability,
@@ -645,6 +732,8 @@ export function createBackendService({
     setDnssec,
     getTransferEligibility,
     getAuthCode,
+    updateContacts,
+    startTransferOut,
     audit,
     idempotency,
     authz,
