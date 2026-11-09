@@ -76,10 +76,13 @@ export function makeDom(opts = {}) {
   }
 
   const root = node("#domain-app");
+  const docListeners = [];
   const document = {
     getElementById: (id) => node("#" + id),
     querySelector: (sel) => node(sel),
-    querySelectorAll: (sel) => [node(sel)]
+    querySelectorAll: (sel) => [node(sel)],
+    addEventListener: (type, fn) => { docListeners.push({ type, fn }); },
+    removeEventListener: () => {}
   };
 
   let uuidSeq = 0;
@@ -114,6 +117,7 @@ export function makeDom(opts = {}) {
     const n = typeof target === "string" ? node(target) : target;
     n.listeners.filter((l) => l.type === "click").forEach((l) => l.fn({ target: n }));
     root.listeners.filter((l) => l.type === "click").forEach((l) => l.fn({ target: n }));
+    docListeners.filter((l) => l.type === "click").forEach((l) => l.fn({ target: n }));
   };
   /* أي حدث تاني (submit مثلاً) على العنصر نفسه */
   ctx.__fire = (target, type) => {
