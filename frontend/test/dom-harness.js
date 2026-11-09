@@ -35,6 +35,7 @@ export function makeStorage() {
 }
 
 export function fakeNode(sel) {
+  const classes = {};
   return {
     sel,
     textContent: "",
@@ -43,14 +44,23 @@ export function fakeNode(sel) {
     checked: false,
     hidden: false,
     disabled: false,
+    style: {},
     _attrs: {},
+    _classes: classes,
     listeners: [],
+    classList: {
+      add(c) { classes[c] = true; },
+      remove(c) { delete classes[c]; },
+      contains(c) { return Boolean(classes[c]); },
+      toggle(c, on) { if (on === undefined) { if (classes[c]) delete classes[c]; else classes[c] = true; } else if (on) classes[c] = true; else delete classes[c]; }
+    },
     setAttribute(k, v) { this._attrs[k] = v; },
     getAttribute(k) { return this._attrs[k] === undefined ? null : this._attrs[k]; },
     closest(sel) {
       const m = /^\[([a-z-]+)\]$/i.exec(sel);
       return m && this._attrs[m[1]] !== undefined ? this : null;
     },
+    focus() { this.focused = true; },
     addEventListener(type, fn) { this.listeners.push({ type, fn }); },
     click() { this.listeners.forEach((l) => { if (l.type === "click") l.fn({ target: this }); }); }
   };
@@ -78,6 +88,8 @@ export function makeDom(opts = {}) {
   const root = node("#domain-app");
   const docListeners = [];
   const document = {
+    documentElement: { setAttribute: () => {}, getAttribute: () => null },
+    body: { style: {}, classList: fakeNode("body").classList, setAttribute: () => {} },
     getElementById: (id) => node("#" + id),
     querySelector: (sel) => node(sel),
     querySelectorAll: (sel) => [node(sel)],
