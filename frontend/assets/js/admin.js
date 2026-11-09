@@ -1,14 +1,16 @@
 /* ==========================================================================
    Migo Domains - لوحة الإدارة (صفحة admin.html)
    --------------------------------------------------------------------------
-   بيانات تجريبية بالكامل (من admin-data.js). مفيش أي اتصال بقاعدة بيانات
+   بيانات العرض تجريبية (من admin-data.js). مفيش أي اتصال بقاعدة بيانات
    ولا بأي مزوّد، ومفيش أي مفاتيح. مزوّد التسجيل معروض «غير متصل».
 
    تكلفة المزوّد والهامش **بيظهروا هنا فقط** (قواعد الفصل في
    docs/DESIGN_SYSTEM.md) وممنوع ظهورهم في واجهة العميل.
 
-   حسابات الهامش تحت مرآة لـ pricing/lib/{decimal,tiers,margin}.js بنفس
-   أرقام الميكرو-دولار (BigInt) عشان تدي نفس النتائج بالحرف.
+   **محرك التسعير مكانه الخدمة، مش المتصفح.** الهامش وسعر البيع بيتحسبوا
+   في `POST /admin/price-preview` بمحرك التسعير المعتمد نفسه (`pricing/lib`)،
+   والصفحة دي بتعرض الناتج بس. كده مستحيل اللوحة والخدمة يختلفوا، وأي قرار
+   تسعير جديد يسري على الاتنين في نفس اللحظة.
    ========================================================================== */
 (function () {
   "use strict";
@@ -17,90 +19,84 @@
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
   /* ======================================================================
-     محرك الهامش (مرآة لمحرك التسعير المعتمد)
+     التسعير: كل الأرقام من الخدمة، مفيش أي حساب هنا
      ====================================================================== */
-  var MICRO = 1000000n;
-
-  function toMicros(value) {
-    var s;
-    if (typeof value === "number") { if (!isFinite(value)) return null; s = String(value); }
-    else if (typeof value === "string") { s = value.trim(); }
-    else { return null; }
-    if (s === "") return null;
-    var m = /^([+-]?)(\d*)(?:\.(\d*))?$/.exec(s);
-    if (!m || (m[2] === "" && (m[3] === undefined || m[3] === ""))) return null;
-    var sign = m[1] === "-" ? -1n : 1n;
-    var frac = m[3] || "";
-    var kept = (frac + "000000").slice(0, 6);
-    var rest = frac.slice(6);
-    var v = BigInt(m[2] || "0") * MICRO + BigInt(kept);
-    if (rest && rest.charCodeAt(0) - 48 >= 5) v += 1n;
-    return sign * v;
-  }
-
-  function divRoundHalfUp(n, d) {
-    if (d === 0n) return null;
-    var neg = (n < 0n) !== (d < 0n);
-    var a = n < 0n ? -n : n, b = d < 0n ? -d : d;
-    var q = a / b;
-    if ((a % b) * 2n >= b) q += 1n;
-    return neg ? -q : q;
-  }
-
-  function percentOf(micros, percent) {
-    var p = toMicros(percent);
-    return divRoundHalfUp(micros * p, 100n * MICRO);
-  }
-
-  /* نصف-لأعلى لخانتين عشريتين ثم صياغة نص بالخانتين */
-  function money2(micros) {
-    var f = 10000n, neg = micros < 0n, v = neg ? -micros : micros;
-    var q = v / f; if ((v % f) * 2n >= f) q += 1n;
-    var out = q * f, o = neg ? -out : out;
-    var av = o < 0n ? -o : o;
-    var int = av / MICRO, frac = (av % MICRO) / f;
-    return (o < 0n ? "-" : "") + int.toString() + "." + frac.toString().padStart(2, "0");
-  }
-
-  /* نص عشري بلا أصفار زايدة (بدقة الميكرو) */
-  function dec(micros) {
-    var neg = micros < 0n, v = neg ? -micros : micros;
-    var int = v / MICRO;
-    var frac = (v % MICRO).toString().padStart(6, "0").replace(/0+$/, "");
-    return (neg ? "-" : "") + int.toString() + (frac ? "." + frac : "");
-  }
-
-  /* الشريحة المطبَّقة: مرآة لـ pricing/lib/tiers.js */
-  function pickTier(costMicros) {
-    if (costMicros < toMicros("8")) return { label: "أقل من 8", rule: "+2.50 ثابت", flat: "2.50" };
-    if (costMicros < toMicros("15")) return { label: "من 8 إلى أقل من 15", rule: "+3.00 ثابت", flat: "3.00" };
-    if (costMicros <= toMicros("30")) return { label: "من 15 إلى 30", rule: "+4.00 ثابت", flat: "4.00" };
-    return { label: "أكثر من 30", rule: "15% بحد أدنى 4.00", percent: "15", floor: "4.00" };
-  }
-
-  /* سعر من التكلفة: يرجع { ok, reason?, tier?, marginMicros?, saleMicros? } */
-  function price(costMicros) {
-    if (costMicros === null || costMicros === undefined) return { ok: false, reason: "INVALID" };
-    if (costMicros < 0n) return { ok: false, reason: "NEGATIVE" };
-    if (costMicros === 0n) return { ok: false, reason: "ZERO" };
-    var t = pickTier(costMicros);
-    var margin;
-    if (t.percent) {
-      margin = percentOf(costMicros, t.percent);
-      var fl = toMicros(t.floor);
-      if (margin < fl) margin = fl;
-    } else {
-      margin = toMicros(t.flat);
+  /** بيرجّع الخدمة لو مربوطة وفيه جلسة إدارية، وإلا سبب واضح للعرض. */
+  function priceService() {
+    if (!window.migoApi || !window.migoApi.isConfigured()) {
+      return { ok: false, message: "خدمة المنصة مش مربوطة. الهامش وسعر البيع بيتحسبوا على الخدمة بمحرك التسعير الرسمي، فمفيش أرقام هنا." };
     }
-    return { ok: true, tier: t, marginMicros: margin, saleMicros: costMicros + margin };
+    var A = window.MigoAuth;
+    if (!A || typeof A.isSignedIn !== "function" || !A.isSignedIn()) {
+      return { ok: false, message: "سجّل دخولك بحساب إداري عشان الخدمة تحسب الهامش وسعر البيع." };
+    }
+    return { ok: true, api: window.migoApi };
+  }
+
+  /** بطاقة واحدة بأسلوب اللوحة. */
+  function priceNotice(host, cls, title, msg) {
+    if (!host) return;
+    host.innerHTML = '<div class="card"><div class="k">' + esc(title) + '</div><div class="v">' +
+      '<span class="' + cls + '">' + esc(msg) + "</span></div></div>";
+  }
+
+  /** عرض ناتج المعاينة (أو سبب رفض المحرك) بشكل موحّد. */
+  function renderPreview(host, preview) {
+    if (!host) return;
+    if (!preview || preview.priced === false) {
+      var msg = (preview && preview.message) || "تعذّر حساب السعر.";
+      var code = preview && preview.reason ? ' <span class="dim mono" style="font-size:var(--fs-xs)">' + esc(preview.reason) + "</span>" : "";
+      host.innerHTML = '<div class="card"><div class="k">مفيش سعر</div><div class="v">' +
+        '<span class="pill danger">' + esc(msg) + "</span>" + code + "</div></div>";
+      return;
+    }
+    var out = [
+      ["الشريحة المطبَّقة", esc(preview.tier && preview.tier.label ? preview.tier.label + " (" + preview.tier.rule + ")" : "-")],
+      ["الهامش", mono("$" + preview.marginUsd)],
+      ["سعر البيع USD", mono("$" + preview.saleUsd)]
+    ];
+    if (preview.egp && preview.egp.available) {
+      out.push(["سعر البيع EGP (تجريبي)", mono(preview.egp.value + " ج.م")]);
+    } else if (preview.egp) {
+      out.push(["سعر البيع EGP", '<span class="dim">' + esc(preview.egp.message || "غير متاح") + "</span>"]);
+    }
+    host.innerHTML = out.map(function (x) {
+      return '<div class="card"><div class="k">' + x[0] + '</div><div class="v">' + x[1] + "</div></div>";
+    }).join("");
+  }
+
+  /** نداء المعاينة مع تعقّب آخر طلب عشان الردود توصل بترتيبها. */
+  function runPreview(host, costUsd, fxRate, opts) {
+    opts = opts || {};
+    if (!host) return;
+    var svc = priceService();
+    var hasInput = costUsd !== "" && costUsd !== undefined && costUsd !== null;
+
+    /* مفيش تكلفة مكتوبة: نقول المطلوب، أو نوضّح إن الخدمة مش مربوطة. */
+    if (!hasInput) {
+      if (!svc.ok) { priceNotice(host, "dim", opts.title || "حاسبة الهامش", svc.message); return; }
+      host.innerHTML = '<p class="dim">' + esc(opts.empty || "اكتب تكلفة المزوّد بالدولار.") + "</p>";
+      return;
+    }
+    if (!svc.ok) { priceNotice(host, "dim", opts.title || "حاسبة الهامش", svc.message); return; }
+
+    host._previewSeq = (host._previewSeq || 0) + 1;
+    var mine = host._previewSeq;
+    host.innerHTML = '<p class="dim">جاري الحساب على الخدمة...</p>';
+    svc.api.pricePreview(costUsd, fxRate).then(function (p) {
+      if (mine !== host._previewSeq) return;
+      renderPreview(host, p);
+    }).catch(function (e) {
+      if (mine !== host._previewSeq) return;
+      host.innerHTML = '<div class="card"><div class="k">تعذّر الحساب</div><div class="v">' +
+        '<span class="pill danger">' + esc((e && e.message) || "خطأ غير متوقع") + "</span>" +
+        (e && e.code ? ' <span class="dim mono" style="font-size:var(--fs-xs)">' + esc(e.code) + "</span>" : "") + "</div></div>";
+    });
   }
 
   /* ======================================================================
      أدوات عرض
      ====================================================================== */
-  /* مكشوفة للاختبار عشان تتقارن بمحرك التسعير الحقيقي (pricing/lib) */
-  window.migoAdminCalc = { toMicros: toMicros, price: price, pickTier: pickTier, money2: money2, dec: dec };
-
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -250,7 +246,6 @@
   function domainDetail(name) {
     var d = D.filter(function (x) { return x.name === name; })[0];
     if (!d) return;
-    var p = price(toMicros(d.cost));
     var dl = [
       ["الدومين", mono(d.name)],
       ["الحالة", pill(d.status, d.label)],
@@ -260,16 +255,35 @@
       ["التجديد التلقائي", d.auto ? pill("ok", "مفعّل") : pill("warn", "متوقف")],
       ["عدد الـNameservers", mono(String(d.ns))]
     ];
-    var money = "<div class=\"card dz mt-4\"><strong style=\"font-size:var(--fs-sm)\">أرقام داخلية (مش للعميل)</strong><div class=\"mt-3\">" +
-      kv([
-        ["تكلفة المزوّد", mono("$" + d.cost)],
-        ["الشريحة المطبَّقة", esc(p.tier ? p.tier.label : "-")],
-        ["الهامش", mono("$" + (p.ok ? dec(p.marginMicros) : "-"))],
-        ["سعر البيع USD", mono("$" + (p.ok ? money2(p.saleMicros) : "-"))]
-      ]) + "</div><p class=\"hint mt-2\">القيم دي بتظهر في لوحة الإدارة فقط.</p></div>";
-    openDetail(d.name, kv(dl) + money +
+    openDetail(d.name, kv(dl) + '<div id="detailMoney"></div>' +
       '<div class="row wrap-flex mt-4"><button class="btn btn-sm" data-toast="تجديد ' + esc(d.name) + ' (تجريبي)" type="button">تجديد تجريبي</button>' +
       '<button class="btn btn-ghost btn-sm" data-toast="إيقاف/تشغيل التجديد (تجريبي)" type="button">تبديل التجديد</button></div>');
+
+    /* الأرقام الداخلية بتتحسب على الخدمة، والدرج بيفتح فورًا ونحدّثه لما توصل. */
+    var host = $("#detailMoney");
+    if (!host) return;
+    var svc = priceService();
+    if (!svc.ok) {
+      host.innerHTML = '<div class="card dz mt-4"><p class="hint">' + esc(svc.message) + "</p></div>";
+      return;
+    }
+    host.innerHTML = '<div class="card dz mt-4"><strong style="font-size:var(--fs-sm)">أرقام داخلية (مش للعميل)</strong>' +
+      '<p class="hint mt-2">جاري الحساب على الخدمة...</p></div>';
+    svc.api.pricePreview(d.cost).then(function (p) {
+      var ok = p && p.priced !== false;
+      host.innerHTML = '<div class="card dz mt-4"><strong style="font-size:var(--fs-sm)">أرقام داخلية (مش للعميل)</strong><div class="mt-3">' +
+        kv([
+          ["تكلفة المزوّد", mono("$" + d.cost)],
+          ["الشريحة المطبَّقة", esc(ok && p.tier ? p.tier.label : "-")],
+          ["الهامش", mono("$" + (ok ? p.marginUsd : "-"))],
+          ["سعر البيع USD", mono("$" + (ok ? p.saleUsd : "-"))]
+        ]) + "</div>" +
+        (ok ? "" : '<p class="pill danger mt-2">' + esc((p && p.message) || "تعذّر حساب السعر.") + "</p>") +
+        '<p class="hint mt-2">القيم دي بتظهر في لوحة الإدارة فقط، وبتتحسب على الخدمة بمحرك التسعير الرسمي.</p></div>';
+    }).catch(function (e) {
+      host.innerHTML = '<div class="card dz mt-4"><strong style="font-size:var(--fs-sm)">أرقام داخلية (مش للعميل)</strong>' +
+        '<p class="hint mt-2">تعذّر حساب الأرقام الداخلية: ' + esc((e && e.message) || "خطأ غير متوقع") + "</p></div>";
+    });
   }
 
   /* ======================================================================
@@ -347,8 +361,9 @@
   }
 
   /* ======================================================================
-     5) التسعير + الحاسبة
+     5) التسعير + الحاسبة — كل الناتج من الخدمة
      ====================================================================== */
+  /* جدول الشرائح عرض للسياسة المعتمدة (نفس أرقام docs/PRICING_POLICY.md). */
   set("#admPricing", window.ADMIN_TIERS.map(function (t) {
     return row([esc(t.range), esc(t.rule)]);
   }).join(""));
@@ -359,34 +374,11 @@
     function run() {
       if (!host) return;
       var raw = inp ? inp.value.trim() : "";
-      if (raw === "") { host.innerHTML = '<p class="dim">اكتب تكلفة المزوّد بالدولار لعرض الهامش وسعر البيع.</p>'; return; }
-      var micros = toMicros(raw);
-      var p = price(micros);
-      if (!p.ok) {
-        var msg = p.reason === "ZERO" ? "التكلفة صفر بدون قرار تسعير صريح (قرار P3 معلّق)، وممنوع اختلاق هامش."
-          : p.reason === "NEGATIVE" ? "التكلفة لا تكون سالبة."
-          : "صيغة رقمية غير صحيحة.";
-        host.innerHTML = '<p class="pill danger">' + esc(msg) + "</p>";
-        return;
-      }
       var fxv = fx ? fx.value.trim() : "";
-      var out = [
-        ["الشريحة المطبَّقة", esc(p.tier.label + " (" + p.tier.rule + ")")],
-        ["الهامش", mono("$" + dec(p.marginMicros))],
-        ["سعر البيع USD", mono("$" + money2(p.saleMicros))]
-      ];
-      if (fxv !== "") {
-        var f = toMicros(fxv);
-        if (f && f > 0n) {
-          var egp = divRoundHalfUp(p.saleMicros * f, MICRO);
-          out.push(["سعر البيع EGP (تجريبي)", mono(money2(egp) + " ج.م")]);
-        } else {
-          out.push(["سعر البيع EGP", '<span class="dim">سعر صرف غير صحيح</span>']);
-        }
-      }
-      host.innerHTML = out.map(function (x) {
-        return '<div class="card"><div class="k">' + x[0] + '</div><div class="v">' + x[1] + "</div></div>";
-      }).join("");
+      runPreview(host, raw, fxv, {
+        title: "حاسبة الهامش",
+        empty: "اكتب تكلفة المزوّد بالدولار لعرض الهامش وسعر البيع."
+      });
     }
     if (inp) inp.addEventListener("input", run);
     if (fx) fx.addEventListener("input", run);
