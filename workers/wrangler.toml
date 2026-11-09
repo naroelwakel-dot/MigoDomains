@@ -1,0 +1,27 @@
+# ==========================================================================
+# Migo Domains — إعداد Cloudflare Worker
+# --------------------------------------------------------------------------
+# ملاحظات إلزامية:
+#   • **ممنوع** أي سرّ في الملف ده. السرّ بيتحط من:  wrangler secret put <NAME>
+#   • ممنوع ذكر أي مفتاح Service Role (بيستخدم في طبقة الـbackend بس،
+#     ومش في الـWorker).
+#   • الاسم والمتغيرات هنا مجرد هيكل؛ القيم الحقيقية بيدخلها صاحب المشروع.
+# ==========================================================================
+
+name = "migo-domains-api"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+# مفيش [vars] فيها قيم حسّاسة. الحدود العامة بس:
+[vars]
+MIGO_ENV = "development"
+MIGO_ALLOWED_ORIGINS = ""
+MIGO_MAX_NAMES = "20"
+MIGO_MAX_TLDS = "12"
+
+# الأسرار (تتحط من الـCLI، مش هنا):
+#   wrangler secret put MIGO_PAYMENT_SECRET     # سرّ التحقق من توقيع الدفع
+#   wrangler secret put SUPABASE_URL            # عنوان المشروع (مش سرّ، بس من البيئة)
+#   wrangler secret put SUPABASE_ANON_KEY       # مفتاح عام (مش Service Role)
+
+# ملاحظة: أي عملية نشر (deploy) **ممنوعة** لحد موافقة صاحب المشروع.
