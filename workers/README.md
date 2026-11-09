@@ -15,7 +15,7 @@
 | المسار | الصلاحية |
 |---|---|
 | `GET /health` · `POST /search` · `POST /availability` · `POST /quote` | عام |
-| `POST /order` · `GET /orders` · `GET /order/:id` · `POST /payment/intent` · `POST /dns` | تسجيل دخول |
+| `POST /order` · `GET /orders` · `GET /order/:id` · `GET /domains` · `POST /payment/intent` · `POST /dns` | تسجيل دخول |
 | `POST /payment/webhook` | **توقيع إلزامي** |
 
 **مفيش مسار واحد بيطلّع تكلفة مورّد ولا هامش ميجو.**
@@ -27,7 +27,7 @@
 
 ## التشغيل
 ```bash
-cd workers && node --test "test/*.test.js"   # 15 اختبار ناجح
+cd workers && node --test "test/*.test.js"   # 16 اختبار ناجح
 ```
 
 > الحالة: **منفَّذ ومُختبَر محليًا**. النشر على Cloudflare **ممنوع** لحد موافقة
