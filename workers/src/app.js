@@ -145,6 +145,10 @@ export function createApp({ service, config = {} } = {}) {
           const body = await readJson(request);
           return json(await service.setNameservers({ domain: body.domain, nameservers: body.nameservers, claims }), 200, request, allowedOrigins);
         }
+        case "admin.pricePreview": {
+          const body = await readJson(request);
+          return json({ ok: true, preview: service.previewPrice({ costUsd: body.costUsd, fx: body.fx || null, claims }) }, 200, request, allowedOrigins);
+        }
         default:
           return json({ ok: false, error: { code: C.NOT_FOUND, message: "مسار غير معروف" } }, 404, request, allowedOrigins);
       }
