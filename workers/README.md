@@ -16,9 +16,11 @@
 |---|---|
 | `GET /health` · `POST /search` · `POST /availability` · `POST /quote` | عام |
 | `POST /order` · `GET /orders` · `GET /order/:id` · `GET /domains` · `POST /payment/intent` · `POST /dns` | تسجيل دخول |
+| `POST /admin/price-preview` | **إدارة بس** (الهامش والتكلفة) |
 | `POST /payment/webhook` | **توقيع إلزامي** |
 
-**مفيش مسار واحد بيطلّع تكلفة مورّد ولا هامش ميجو.**
+**مسار واحد بس بيطلّع تكلفة مورّد أو هامش ميجو، وهو `POST /admin/price-preview`
+المحمي بالإدارة. أي مسار تاني ممنوع يطلّعهم، وفيه اختبار بيتأكد من ده.**
 
 ## الأسرار
 كل سرّ من `env` (Secrets)، ومفيش أي قيمة مكتوبة في الكود أو الملف. مفتاح
@@ -27,7 +29,7 @@
 
 ## التشغيل
 ```bash
-cd workers && node --test "test/*.test.js"   # 16 اختبار ناجح
+cd workers && node --test "test/*.test.js"   # 19 اختبار ناجح
 ```
 
 > الحالة: **منفَّذ ومُختبَر محليًا**. النشر على Cloudflare **ممنوع** لحد موافقة
