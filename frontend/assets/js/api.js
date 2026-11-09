@@ -145,6 +145,14 @@
 
     setNameservers: function (domain, nameservers) {
       return request("POST", "/dns", { body: { domain: domain, nameservers: nameservers } });
+    },
+
+    /* معاينة تسعير للإدارة: الهامش وسعر البيع بيتحسبوا على الخدمة بمحرك
+       التسعير الرسمي. ممنوع أي حساب في المتصفح. المسار للإدارة بس. */
+    pricePreview: function (costUsd, fxRate) {
+      var body = { costUsd: costUsd };
+      if (fxRate !== undefined && fxRate !== null && fxRate !== "") body.fx = { rate: fxRate };
+      return request("POST", "/admin/price-preview", { body: body }).then(function (d) { return d.preview; });
     }
   };
 })(typeof window !== "undefined" ? window : this);
