@@ -1,9 +1,11 @@
 /* ==========================================================================
    Migo Domains - إدارة الدومين (صفحة manage.html)
    --------------------------------------------------------------------------
-   بيانات العرض تجريبية، **ماعدا حفظ الـNameservers وسجلات DNS**: دول
-   بيتنادوا على خدمة المنصة (`POST /dns` و`POST /dns/records`) والخدمة هي
-   المرجع — لو رفضت، الصفحة بتقول كده ومش بتحفظ حاجة محليًا. مفيش أي مفاتيح.
+   كل الإجراءات الحقيقية بتتنادى على خدمة المنصة والخدمة هي المرجع
+   (حفظ الـNameservers، سجلات DNS، قفل النقل، DNSSEC، تفاصيل الدومين،
+   جهات الاتصال، رمز النقل، وأهلية النقل): لو الخدمة رفضت، الصفحة بتقول
+   كده ومش بتحفظ حاجة محليًا. الفاضي من غير خدمة = عرض تجريبي معلَّم.
+   مفيش أي مفاتيح، ومفيش أي سعر محسوب هنا.
 
    الفحص المحلي للـNameservers والـDNS **مرآة** لقواعد المزوّد
    (`providers/lib/mock.js`)، ووظيفته رد سريع للمستخدم بس — القرار النهائي
@@ -31,7 +33,6 @@
     providerConnected: false,
     lock: true,
     dnssec: false,
-    authCode: "A7F3K9Q2M4X8P1Z6",
     owner: "ahmed@example.test",
     nameservers: ["ns1.migo-dns.test", "ns2.migo-dns.test"],
     records: [
@@ -277,19 +278,19 @@
   });
 
   /* ------------------------------------------------------------ تبويب: جهات الاتصال */
-  var CONTACTS = [
-    { role: "Registrant", note: "صاحب الدومين", name: "أحمد العميل", email: "ahmed@example.test" },
-    { role: "Admin", note: "الإدارة التقنية", name: "أحمد العميل", email: "ahmed@example.test" },
-    { role: "Tech", note: "الدعم الفني", name: "أحمد العميل", email: "ahmed@example.test" },
-    { role: "Billing", note: "الفوترة", name: "أحمد العميل", email: "ahmed@example.test" }
+  var DEMO_CONTACTS = [
+    { role: "Registrant", note: "صاحب الدومين", pill: "accent", name: "أحمد العميل", email: "ahmed@example.test" },
+    { role: "Admin", note: "الإدارة التقنية", pill: "info", name: "أحمد العميل", email: "ahmed@example.test" },
+    { role: "Tech", note: "الدعم الفني", pill: "info", name: "أحمد العميل", email: "ahmed@example.test" },
+    { role: "Billing", note: "الفوترة", pill: "info", name: "أحمد العميل", email: "ahmed@example.test" }
   ];
-  $("#contactsGrid").innerHTML = CONTACTS.map(function (c) {
-    return '<div class="card"><div class="row-between"><h3 class="h3">' + c.role + "</h3>" +
-      pill(c.role === "Registrant" ? "accent" : "info", c.note) + "</div>" +
-      '<div class="mt-3 row-between"><span class="muted">الاسم</span><span>' + esc(c.name) + "</span></div>" +
-      '<div class="mt-2 row-between"><span class="muted">البريد</span><span class="mono">' + esc(c.email) + "</span></div>" +
-      '<button class="btn btn-sm mt-4" type="button" data-toast="تعديل بيانات ' + c.role + ' (تجريبي)">تعديل</button></div>';
-  }).join("") +
+  var CONTACT_ROLES = [
+    { key: "registrant", role: "Registrant", note: "صاحب الدومين", pill: "accent" },
+    { key: "admin", role: "Admin", note: "الإدارة التقنية", pill: "info" },
+    { key: "tech", role: "Tech", note: "الدعم الفني", pill: "info" },
+    { key: "billing", role: "Billing", note: "الفوترة", pill: "info" }
+  ];
+  var OWNER_CARD_HTML =
     '<div class="card" style="grid-column:1/-1">' +
     '<h3 class="h3">تحقق من صحة المالك</h3>' +
     '<p class="muted mt-2" style="font-size:var(--fs-sm)">الملكية لازم تكون للعميل الفعلي. دي نفس القاعدة اللي المزوّد بيفرضها: بيانات Migo مرفوضة كمالك رسمي.</p>' +
@@ -299,7 +300,37 @@
     '<button class="btn" type="button" id="ownerCheck" style="align-self:flex-end">تحقق</button>' +
     "</div><p class=\"hint mt-3\" id=\"ownerResult\"></p></div>";
 
-  $("#ownerCheck").addEventListener("click", function () {
+  /** جهات الاتصال من رد الخدمة لو فيها أي جهة؛ وإلا `null` (يعني الديمو). */
+  function contactsFromService(contacts) {
+    if (!contacts) return null;
+    var any = false;
+    var rows = CONTACT_ROLES.map(function (r) {
+      var c = contacts[r.key] || null;
+      if (c) any = true;
+      return {
+        role: r.role,
+        note: r.note,
+        pill: r.pill,
+        name: (c && c.name) || "-",
+        email: (c && c.email) || "-"
+      };
+    });
+    return any ? rows : null;
+  }
+
+  function renderContacts(rows) {
+    var list = rows || DEMO_CONTACTS;
+    $("#contactsGrid").innerHTML = list.map(function (c) {
+      return '<div class="card"><div class="row-between"><h3 class="h3">' + c.role + "</h3>" +
+        pill(c.pill || "info", c.note) + "</div>" +
+        '<div class="mt-3 row-between"><span class="muted">الاسم</span><span>' + esc(c.name) + "</span></div>" +
+        '<div class="mt-2 row-between"><span class="muted">البريد</span><span class="mono">' + esc(c.email) + "</span></div>" +
+        '<button class="btn btn-sm mt-4" type="button" data-toast="تعديل بيانات ' + c.role + ' (تجريبي)">تعديل</button></div>';
+    }).join("") + OWNER_CARD_HTML;
+    bindOwnerCheck();
+  }
+
+  function checkOwner() {
     var v = $("#ownerTry").value.trim().toLowerCase();
     var out = $("#ownerResult");
     if (!v) { out.className = "hint"; out.textContent = "اكتب اسم أو بريد الأول."; return; }
@@ -313,7 +344,15 @@
       out.textContent = "مقبول مبدئيًا كمالك (التحقق النهائي عند المزوّد).";
       toast("البيانات مقبولة مبدئيًا", "ok");
     }
-  });
+  }
+
+  /* الزرار بيتبني من جديد مع كل رسم، فبنربط مرة واحدة للنسخة الحالية. */
+  function bindOwnerCheck() {
+    var btn = $("#ownerCheck");
+    if (!btn || btn.__ownerBound) return;
+    btn.__ownerBound = true;
+    btn.addEventListener("click", checkOwner);
+  }
 
   /* -------------------------------------------------------------- تبويب: الأمان */
   function renderSecurity() {
@@ -357,33 +396,60 @@
   $("#lockToggle").addEventListener("click", function () { toggleSecurity("lock"); });
   $("#dnssecToggle").addEventListener("click", function () { toggleSecurity("dnssec"); });
 
+  /* رمز النقل سرّي: بيتطلب من الخدمة عند لحظة العرض، ومش بيتخزّن في الحالة. */
+  var AUTH_HIDDEN = "•••• •••• •••• ••••";
+  var revealedAuthCode = null;
+
+  function setAuthHint(text, isError) {
+    var hint = $("#authHint");
+    if (!hint) return;
+    hint.className = isError ? "hint error" : "hint";
+    hint.textContent = text;
+  }
+
+  function hideAuthCode() {
+    revealedAuthCode = null;
+    $("#authValue").textContent = AUTH_HIDDEN;
+    $("#authValue").setAttribute("data-shown", "0");
+    $("#authToggle").textContent = "إظهار";
+    $("#authCopy").hidden = true;
+    setAuthHint("ممنوع تشاركه في مكان عام، وبيتسلّم لصاحب الدومين بس.", false);
+  }
+
+  function showAuthCode(code, warning) {
+    revealedAuthCode = code;
+    $("#authValue").textContent = code;
+    $("#authValue").setAttribute("data-shown", "1");
+    $("#authToggle").textContent = "إخفاء";
+    $("#authCopy").hidden = false;
+    setAuthHint(warning || "الرمز ظاهر دلوقتي: سرّي، وممنوع في رابط عام أو سجل غير محمي.", true);
+  }
+
   $("#authToggle").addEventListener("click", function () {
-    var shown = $("#authValue").getAttribute("data-shown") === "1";
-    var btn = $("#authToggle");
-    if (shown) {
-      $("#authValue").textContent = "•••• •••• •••• ••••";
-      $("#authValue").setAttribute("data-shown", "0");
-      btn.textContent = "إظهار";
-      $("#authCopy").hidden = true;
-      $("#authHint").className = "hint";
-      $("#authHint").textContent = "ممنوع تشاركه في مكان عام، وبيتسلّم لصاحب الدومين بس.";
-    } else {
-      $("#authValue").textContent = STATE.authCode;
-      $("#authValue").setAttribute("data-shown", "1");
-      btn.textContent = "إخفاء";
-      $("#authCopy").hidden = false;
-      $("#authHint").className = "hint error";
-      $("#authHint").textContent = "الرمز ظاهر دلوقتي: سرّي، وممنوع في رابط عام أو سجل غير محمي.";
-    }
+    if ($("#authValue").getAttribute("data-shown") === "1") { hideAuthCode(); return; }
+    var svc = platformService();
+    if (!svc.ok) { setAuthHint(svc.message, true); return; }
+    setAuthHint("جاري طلب الرمز من الخدمة...", false);
+    svc.api.getAuthCode(STATE.name).then(function (res) {
+      if (!res || !res.authCode) { setAuthHint("الخدمة ماردّتش رمز نقل للدومين ده.", true); return; }
+      showAuthCode(res.authCode, res.warning);
+      toast("الخدمة رجّعت رمز النقل", "ok");
+    }).catch(function (err) {
+      setAuthHint("الخدمة رفضت طلب الرمز: " + ((err && err.message) || "خطأ غير متوقع") + (err && err.code ? " (" + err.code + ")" : ""), true);
+      toast("الخدمة رفضت طلب رمز النقل", "danger");
+    });
   });
+
   $("#authCopy").addEventListener("click", function () {
-    var done = function () { toast("اتنسخ الرمز (تجريبي)", "ok"); };
+    if (!revealedAuthCode) { toast("اطلب الرمز من الخدمة الأول.", "warn"); return; }
+    var done = function () { toast("اتنسخ الرمز", "ok"); };
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(STATE.authCode).then(done, function () { toast("النسخ مش متاح في المتصفح ده", "warn"); });
+      navigator.clipboard.writeText(revealedAuthCode).then(done, function () { toast("النسخ مش متاح في المتصفح ده", "warn"); });
     } else {
       toast("النسخ مش متاح في المتصفح ده", "warn");
     }
   });
+
 
   /* -------------------------------------------------------------- تبويب: النقل */
   /* فحص محلي للعرض التجريبي بس — القرار النهائي بييجي من الخدمة. */
@@ -396,7 +462,7 @@
       { ok: !STATE.lock, label: "قفل النقل مفتوح", detail: STATE.lock ? "القفل مفعّل حاليًا" : "مفيش قفل" },
       { ok: !STATE.dnssec, label: "DNSSEC مقفول", detail: STATE.dnssec ? "DNSSEC مفعّل" : "مفيش DNSSEC" },
       { ok: STATE.status === "ACTIVE", label: "حالة الدومين نشطة", detail: STATE.statusLabel },
-      { ok: Boolean(STATE.authCode), label: "رمز النقل متاح", detail: "متاح لصاحب الدومين" }
+      { ok: true, label: "رمز النقل بيتطلب من تبويب الأمان", detail: "عند الطلب" }
     ];
   }
 
@@ -469,6 +535,8 @@
         STATE.nameservers = d.nameservers.slice();
         renderNs();
       }
+      var contactRows = contactsFromService(d.contacts);
+      if (contactRows) renderContacts(contactRows);
       renderOverview();
       renderSecurity();
       refreshEligibility();
@@ -488,6 +556,8 @@
   renderNs();
   refreshDns();
   renderSecurity();
+  renderContacts();
+  hideAuthCode();
   renderEligibility(null);
   loadDomain();
 })();
