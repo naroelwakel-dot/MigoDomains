@@ -129,6 +129,8 @@ export function createApp({ service, config = {} } = {}) {
           return json({ ok: true, orders: service.listOrders(claims) }, 200, request, allowedOrigins);
         case "order.get":
           return json({ ok: true, order: service.getOrder(params.orderId, claims) }, 200, request, allowedOrigins);
+        case "domains.list":
+          return json({ ok: true, domains: service.listDomains(claims) }, 200, request, allowedOrigins);
         case "payment.intent": {
           const body = await readJson(request);
           return json({ ok: true, intent: service.createPaymentIntent({ orderId: body.orderId, claims }) }, 201, request, allowedOrigins);
