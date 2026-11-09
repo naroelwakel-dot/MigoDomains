@@ -147,6 +147,16 @@
       return request("POST", "/dns", { body: { domain: domain, nameservers: nameservers } });
     },
 
+    /* سجلات DNS العادية: بتتبعت للخدمة، والقرار النهائي عند الخدمة/المزوّد.
+       الاستبدال كامل للـzone (سجلات السلطة بتترجع من الخدمة ومش بتتبعت هنا). */
+    getDnsRecords: function (domain) {
+      return request("GET", "/dns/records?domain=" + encodeURIComponent(domain)).then(function (d) { return d.records || []; });
+    },
+
+    updateDnsRecords: function (domain, records) {
+      return request("POST", "/dns/records", { body: { domain: domain, records: records } });
+    },
+
     /* معاينة تسعير للإدارة: الهامش وسعر البيع بيتحسبوا على الخدمة بمحرك
        التسعير الرسمي. ممنوع أي حساب في المتصفح. المسار للإدارة بس. */
     pricePreview: function (costUsd, fxRate) {
