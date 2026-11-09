@@ -48,8 +48,10 @@
       <div class="mt-6" id="sres" aria-live="polite" aria-busy="false"></div>
 
       <p class="dim mt-5" style="font-size:var(--fs-xs)">
-        ملاحظة: فحص التوفّر في هذه المرحلة <strong>تجريبي</strong> وبيرجع نتيجة تجريبية بدون أي اتصال خارجي.
-        لما يجهز الباك إند، هيتم ربطه بخدمة التوفّر الحقيقية (RDAP + واجهة المزوّد) قبل أي تسجيل فعلي.
+        فحص التوفّر بيمر على خدمة المنصة (RDAP في الباك إند)، والسعر بيتجاب من
+        خدمة التسعير. طول ما <span class="mono">window.MIGO_API.baseUrl</span> في
+        <span class="mono">config.js</span> فاضي، الصفحة هتقول «الخدمة مش مربوطة بعد»
+        وما هتعرضش أي سعر أو نتيجة تجريبية.
       </p>
     </div>
   </main>
@@ -62,7 +64,10 @@
   </footer>
 
   <div class="scrim" data-dismiss></div>
+  <script src="assets/js/config.js"></script>
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/cart-store.js"></script>
   <script src="assets/js/search.js"></script>
 </body>
 </html>
