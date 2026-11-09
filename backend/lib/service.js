@@ -215,6 +215,36 @@ export function createBackendService({
     return [...orders.values()].filter((o) => admin || o.customerId === user).map(clientOrder);
   }
 
+  /* --------------------- دومينات العميل --------------------- */
+
+  /**
+   * دومين العميل = طلب مكتمل له سجل عند المزوّد.
+   * مفيش أي تكلفة أو هامش هنا، وبنرجّع نسخة مخصّصة للعميل بس.
+   */
+  function clientDomainRecord(order) {
+    const rec = order.domainRecord || {};
+    return Object.freeze({
+      domain: order.domain,
+      status: rec.status || "active",
+      expiresAt: rec.expiresAt || null,
+      nameservers: Array.isArray(rec.nameservers) ? rec.nameservers.slice() : [],
+      orderId: order.orderId,
+      years: order.years,
+      registeredAt: order.updatedAt || order.createdAt,
+    });
+  }
+
+  /** دومينات العميل (أو كل الدومينات لو كان مشرف). مرتبة بالأقرب انتهاءً. */
+  function listDomains(claims) {
+    const user = authz.requireUser(claims);
+    const admin = authz.isAdmin(claims);
+    return [...orders.values()]
+      .filter((o) => o.status === OS.COMPLETED && o.domainRecord)
+      .filter((o) => admin || o.customerId === user)
+      .map(clientDomainRecord)
+      .sort((a, b) => String(a.expiresAt || "").localeCompare(String(b.expiresAt || "")));
+  }
+
   /* ------------------------------- الدفع ------------------------------- */
 
   /** المبلغ المطلوب للطلب (بالوحدة الصغرى) — EGP لو متاح، وإلا USD. */
@@ -304,6 +334,7 @@ export function createBackendService({
         status: record.status,
         expiresAt: record.expiresAt || (record.record && record.record.expiresAt) || null,
         providerId: record.id || (record.record && record.record.id) || null,
+        nameservers: record.nameservers || (record.record && record.record.nameservers) || [],
       };
       touch(order, OS.COMPLETED, "تم التسجيل");
       audit.append({ action: "order.completed", target: order.domain, actor: order.customerId, detail: { orderId: order.orderId } });
@@ -358,6 +389,7 @@ export function createBackendService({
     createOrder,
     getOrder,
     listOrders,
+    listDomains,
     createPaymentIntent,
     confirmPayment,
     fulfill,
