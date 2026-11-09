@@ -42,15 +42,76 @@
   function shortDate(iso) {
     if (!iso) return "-";
     try {
-      return new Date(iso).toLocaleDateString("ar-EG", { day: "numeric", month: "long", year: "numeric" });
+      // أرقام لاتينية عن قصد، زي باقي الواجهة (الأسعار والتواريخ بالخط الأحادي)
+      return new Date(iso).toLocaleDateString("ar-EG-u-nu-latn", { day: "numeric", month: "long", year: "numeric" });
     } catch (e) { return String(iso).slice(0, 10); }
   }
 
-  /* الأجزاء اللي لسه مفيش ليها مسار في الخدمة */
-  function renderPendingSections() {
-    fill("#domBody", oneRow(5, "خدمة إدارة الدومينات لسه مش متاحة، فمفيش دومينات نعرضها هنا لسه."));
-    fill("#renBody", oneRow(3, "مواعيد التجديد هتظهر هنا لما خدمة إدارة الدومينات تتفتح."));
+  /* حالات الدومين عند المزوّد -> نص عربي */
+  var DOMAIN_LABELS = {
+    ACTIVE: { label: "نشط", tone: "ok" },
+    REGISTERED: { label: "مسجّل", tone: "ok" },
+    EXPIRED: { label: "منتهي", tone: "danger" },
+    REDEMPTION_PERIOD: { label: "فترة استرداد", tone: "warn" },
+    PENDING_DELETE: { label: "في طريقه للحذف", tone: "danger" },
+    TRANSFER_PENDING: { label: "نقل قيد التنفيذ", tone: "info" },
+    TRANSFER_COMPLETED: { label: "اتنقل", tone: "ok" },
+    TRANSFER_FAILED: { label: "فشل النقل", tone: "danger" }
+  };
+
+  function notReady(tab, reason) {
+    if (tab === "domains") fill("#domBody", oneRow(5, reason));
+    else fill("#renBody", oneRow(3, reason));
   }
+
+  /**
+   * دومينات العميل: من `GET /domains` (طلبات مكتملة بس).
+   * التجديد التلقائي مش معلوم من المزوّد، فبنكتب «غير معلوم» بدل ما نخمّن.
+   */
+  function renderDomains() {
+    var reason = !window.migoApi || !window.migoApi.isConfigured()
+      ? "خدمة المنصة مش مربوطة بعد، فمفيش دومينات نعرضها."
+      : ((!window.MigoAuth || !window.MigoAuth.isSignedIn()) ? "سجّل دخولك الأول عشان تشوف دوميناتك." : null);
+    if (reason) { notReady("domains", reason); notReady("renew", reason); return; }
+
+    fill("#domBody", oneRow(5, "جاري تحميل الدومينات..."));
+    fill("#renBody", oneRow(3, "جاري تحميل الدومينات..."));
+
+    window.migoApi.listDomains().then(function (domains) {
+      if (!domains.length) {
+        notReady("domains", "مفيش دومينات مسجّلة على حسابك لسه. ابدأ من صفحة البحث.");
+        notReady("renew", "مفيش دومينات مسجّلة على حسابك لسه.");
+        return;
+      }
+      fill("#domBody", domains.map(function (d) {
+        var st = DOMAIN_LABELS[d.status] || { label: d.status, tone: "warn" };
+        return "<tr><td class=\"mono\">" + esc(d.domain) + "</td>" +
+          "<td>" + pill(st.tone, st.label) + "</td>" +
+          "<td>" + esc(shortDate(d.expiresAt)) + "</td>" +
+          '<td class="dim">غير معلوم</td>' +
+          '<td><a class="btn btn-sm" href="checkout.html">إدارة الطلب</a></td></tr>';
+      }).join(""));
+
+      fill("#renBody", domains.map(function (d) {
+        return "<tr><td class=\"mono\">" + esc(d.domain) + "</td>" +
+          "<td>" + esc(shortDate(d.expiresAt)) + "</td>" +
+          '<td><button class="btn btn-primary btn-sm" data-renew="' + esc(d.domain) + '">جدّد الآن</button></td></tr>';
+      }).join(""));
+    }).catch(function (e) {
+      var msg = (e && e.message) || "خطأ غير متوقع";
+      notReady("domains", "تعذّر تحميل الدومينات: " + msg);
+      notReady("renew", "تعذّر تحميل الدومينات: " + msg);
+    });
+  }
+
+  /* التجديد: بنضيف بند تجديد للسلة، وبعدها الطلب بيتسجل من صفحة إتمام الطلب. */
+  document.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest ? e.target.closest("[data-renew]") : null;
+    if (!b) return;
+    var name = b.getAttribute("data-renew");
+    window.migoCart.add({ domain: name, operation: "renewal", years: 1 });
+    if (window.migoToast) window.migoToast("تمت إضافة تجديد " + name + " للسلة");
+  });
 
   function renderOrders() {
     if (!window.migoApi || !window.migoApi.isConfigured()) {
@@ -88,6 +149,6 @@
     });
   }
 
-  renderPendingSections();
+  renderDomains();
   renderOrders();
 })();
