@@ -15,7 +15,7 @@
 | المسار | الصلاحية |
 |---|---|
 | `GET /health` · `POST /search` · `POST /availability` · `POST /quote` | عام |
-| `POST /order` · `GET /orders` · `GET /order/:id` · `GET /domains` · `POST /payment/intent` · `POST /dns` · `GET /dns/records` · `POST /dns/records` · `GET /domain/:name` · `POST /domain/:name/lock` · `POST /domain/:name/dnssec` · `GET /domain/:name/transfer-eligibility` | تسجيل دخول |
+| `POST /order` · `GET /orders` · `GET /order/:id` · `GET /domains` · `POST /payment/intent` · `POST /dns` · `GET /dns/records` · `POST /dns/records` · `GET /domain/:name` · `POST /domain/:name/lock` · `POST /domain/:name/dnssec` · `GET /domain/:name/transfer-eligibility` · `GET /domain/:name/auth-code` | تسجيل دخول |
 | `POST /admin/price-preview` | **إدارة بس** (الهامش والتكلفة) |
 | `POST /payment/webhook` | **توقيع إلزامي** |
 
