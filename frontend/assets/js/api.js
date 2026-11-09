@@ -134,6 +134,9 @@
     },
 
     listOrders: function () { return request("GET", "/orders").then(function (d) { return d.orders || []; }); },
+
+    /* دومينات العميل المسجّلة فعلاً (طلبات مكتملة بس) */
+    listDomains: function () { return request("GET", "/domains").then(function (d) { return d.domains || []; }); },
     getOrder: function (orderId) { return request("GET", "/order/" + encodeURIComponent(orderId)).then(function (d) { return d.order; }); },
 
     paymentIntent: function (orderId) {
