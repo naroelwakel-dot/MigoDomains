@@ -276,7 +276,7 @@ test("GET /dns/records: عميل تاني مش بيشوف سجلات حد", asyn
 
 test("مسارات /domain/:name محمية، والمالك بس بيقدر", async () => {
   const { app, payments, service } = makeApp();
-  for (const [m, p] of [["GET", "/domain/x.com"], ["POST", "/domain/x.com/lock"], ["POST", "/domain/x.com/dnssec"], ["GET", "/domain/x.com/transfer-eligibility"]]) {
+  for (const [m, p] of [["GET", "/domain/x.com"], ["POST", "/domain/x.com/lock"], ["POST", "/domain/x.com/dnssec"], ["GET", "/domain/x.com/transfer-eligibility"], ["GET", "/domain/x.com/auth-code"]]) {
     assert.equal(matchRoute(m, p).route.auth, "user", p);
     assert.equal((await app.handle(req(m, p, { body: m === "POST" ? {} : undefined }))).status, 401, p);
   }
@@ -288,6 +288,8 @@ test("مسارات /domain/:name محمية، والمالك بس بيقدر", a
   const d = (await jsonOf(details)).details;
   assert.equal(d.domain, "api-sec.com");
   assert.equal("authCode" in d, false, "رمز النقل ممنوع يظهر هنا");
+  assert.ok(d.contacts && d.contacts.registrant, "جهات الاتصال لازم تيجي مع التفاصيل");
+  assert.equal("cost" in d.contacts.registrant, false, "ممنوع أي تكلفة في جهات الاتصال");
 
   const lock = await app.handle(req("POST", "/domain/api-sec.com/lock", { body: { locked: false }, headers: auth }));
   assert.equal(lock.status, 200);
@@ -303,6 +305,25 @@ test("مسارات /domain/:name محمية، والمالك بس بيقدر", a
   assert.equal(e.ok, true);
   assert.equal(e.eligible, false, "لسه فيه DNSSEC مفتوح ولسه ما مرّوش 60 يوم");
   assert.ok(Array.isArray(e.reasons) && e.reasons.length >= 1);
+});
+
+test("GET /domain/:name/auth-code: المالك بس، والرمز سرّي ومسجّل", async () => {
+  const { app, payments, service } = makeApp();
+  const auth = await ownedDomain(service, payments, "api-code.com");
+
+  const res = await app.handle(req("GET", "/domain/api-code.com/auth-code", { headers: auth }));
+  assert.equal(res.status, 200);
+  const body = await jsonOf(res);
+  assert.equal(body.ok, true);
+  assert.ok(body.authCode, "لازم يرجع رمز");
+  assert.equal(body.sensitive, true);
+  assert.ok(body.warning, "لازم يكون فيه تحذير");
+
+  const other = { "x-migo-claims": JSON.stringify({ sub: "user-2" }) };
+  assert.equal((await app.handle(req("GET", "/domain/api-code.com/auth-code", { headers: other }))).status, 403);
+
+  const entry = service.audit.list().filter((a) => a.action === "domain.auth_code_revealed").pop();
+  assert.ok(entry && entry.detail && entry.detail.sensitive === true, "العملية الحساسة لازم تتسجّل");
 });
 
 test("GET /domain/:name: عميل تاني = 403", async () => {
