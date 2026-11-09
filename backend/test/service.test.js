@@ -229,3 +229,61 @@ test("listDomains مرتّب بالأقرب انتهاءً", async () => {
     assert.ok(String(list[i - 1].expiresAt) <= String(list[i].expiresAt), "الترتيب غلط");
   }
 });
+
+/* ------------------- معاينة التسعير للإدارة ------------------- */
+
+import { priceFromCost, toFixedString, DEFAULT_CONFIG } from "../../pricing/lib/index.js";
+
+const ADMIN = { sub: "admin-1", role: "admin" };
+
+test("previewPrice بيطابق محرك التسعير المعتمد بالحرف", () => {
+  const { service } = build();
+  for (const cost of ["7.99", "8", "14.99", "15", "30", "30.01", "100"]) {
+    const p = service.previewPrice({ costUsd: cost, claims: ADMIN });
+    const engine = priceFromCost(cost);
+    const fmt = (m) => toFixedString(m, DEFAULT_CONFIG.rounding.usdDecimals, DEFAULT_CONFIG.rounding.mode);
+    assert.equal(p.priced, true, cost);
+    assert.equal(p.saleUsd, fmt(engine.saleMicros), "سعر البيع مختلف عند " + cost);
+    assert.equal(p.marginUsd, fmt(engine.marginMicros), "الهامش مختلف عند " + cost);
+    assert.equal(p.tier.id, engine.marginRuleId, "الشريحة مختلفة عند " + cost);
+    assert.equal(p.costUsd, fmt(engine.totalCostMicros));
+  }
+});
+
+test("previewPrice للمستخدم العادي ممنوع", () => {
+  const { service } = build();
+  assert.throws(() => service.previewPrice({ costUsd: "12", claims: USER }), (e) => e.code === C.FORBIDDEN);
+  assert.throws(() => service.previewPrice({ costUsd: "12" }), (e) => e.code === C.UNAUTHENTICATED);
+});
+
+test("previewPrice: تكلفة صفر = رفض بقرار P3 مش رقم مخترع", () => {
+  const { service } = build();
+  const p = service.previewPrice({ costUsd: "0", claims: ADMIN });
+  assert.equal(p.priced, false);
+  assert.equal(p.reason, "ZERO_COST_REQUIRES_DECISION");
+  assert.equal("saleUsd" in p, false);
+});
+
+test("previewPrice: تكلفة سالبة أو نص مش رقم = VALIDATION", () => {
+  const { service } = build();
+  assert.throws(() => service.previewPrice({ costUsd: "-1", claims: ADMIN }), (e) => e.code === C.VALIDATION);
+  assert.throws(() => service.previewPrice({ costUsd: "abc", claims: ADMIN }), (e) => e.code === C.VALIDATION);
+});
+
+test("previewPrice: EGP بيتحوّل بس لما فيه سعر صرف", () => {
+  const { service } = build();
+  const without = service.previewPrice({ costUsd: "30.01", claims: ADMIN });
+  assert.equal(without.egp.available, false);
+
+  const withFx = service.previewPrice({ costUsd: "30.01", fx: { rate: "50" }, claims: ADMIN });
+  assert.equal(withFx.egp.available, true);
+  assert.equal(withFx.egp.value, "1725.58", "50 × 34.5115");
+});
+
+test("previewPrice مسجّل في سجل التدقيق باسم المنادي", () => {
+  const { service } = build();
+  service.previewPrice({ costUsd: "12", claims: ADMIN });
+  const entry = service.audit.list().filter((a) => a.action === "admin.price_preview").pop();
+  assert.ok(entry, "مفيش سجل للمعاينة");
+  assert.equal(entry.actor, "admin-1");
+});
