@@ -171,3 +171,53 @@ test("buildApp من بيئة افتراضية يشتغل بالمزوّد الو
 test("طلب المزوّد الحقيقي بدون ربط = خطأ واضح", () => {
   assert.throws(() => buildApp({ MIGO_REGISTRAR: "openprovider" }), /مش مربوط/);
 });
+
+test("POST /admin/price-preview للإدارة بس", async () => {
+  const { app } = makeApp();
+  const route = matchRoute("POST", "/admin/price-preview");
+  assert.ok(route, "المسار مش موجود");
+  assert.equal(route.route.auth, "admin");
+
+  // من غير دخول
+  const anon = await app.handle(req("POST", "/admin/price-preview", { body: { costUsd: "12" } }));
+  assert.equal(anon.status, 403);
+
+  // عميل عادي
+  const cust = await app.handle(req("POST", "/admin/price-preview", {
+    body: { costUsd: "12" },
+    headers: { "x-migo-claims": JSON.stringify(USER) },
+  }));
+  assert.equal(cust.status, 403);
+  assert.equal((await jsonOf(cust)).error.code, "FORBIDDEN");
+
+  // إداري
+  const admin = { sub: "admin-1", role: "admin" };
+  const res = await app.handle(req("POST", "/admin/price-preview", {
+    body: { costUsd: "12" },
+    headers: { "x-migo-claims": JSON.stringify(admin) },
+  }));
+  assert.equal(res.status, 200);
+  const preview = (await jsonOf(res)).preview;
+  assert.equal(preview.priced, true);
+  assert.equal(preview.marginUsd, "3.00");
+  assert.equal(preview.saleUsd, "15.00");
+});
+
+test("POST /admin/price-preview: تكلفة صفر بترجّع رفض معلَّم مش سعر", async () => {
+  const { app } = makeApp();
+  const admin = { sub: "admin-1", role: "admin" };
+  const res = await app.handle(req("POST", "/admin/price-preview", {
+    body: { costUsd: "0" },
+    headers: { "x-migo-claims": JSON.stringify(admin) },
+  }));
+  assert.equal(res.status, 200);
+  const preview = (await jsonOf(res)).preview;
+  assert.equal(preview.priced, false);
+  assert.equal(preview.reason, "ZERO_COST_REQUIRES_DECISION");
+});
+
+test("مسار المعاينة هو الوحيد اللي بيطلّع هامش", () => {
+  const pricingLeakPaths = ROUTES.filter((r) => /price|admin/.test(r.path)).map((r) => r.path);
+  assert.deepEqual(pricingLeakPaths, ["/admin/price-preview"]);
+  assert.equal(ROUTES.find((r) => r.path === "/admin/price-preview").auth, "admin");
+});
