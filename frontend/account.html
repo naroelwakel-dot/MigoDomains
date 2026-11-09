@@ -36,9 +36,11 @@
       <h1 class="h2 mt-4">حسابي</h1>
 
       <div id="guardNote" class="card mt-4" hidden style="background:var(--surface-2)">
-        <strong style="font-size:var(--fs-sm)">وضع تجريبي</strong>
-        <p class="muted mt-2" style="font-size:var(--fs-sm)">تسجيل الدخول لسه غير مُهيّأ، فالصفحة دي بتعرض بيانات تجريبية. لما يتم الربط، هتطلب تسجيل دخول الأول.</p>
+        <strong style="font-size:var(--fs-sm)">تسجيل الدخول لسه غير مُهيّأ</strong>
+        <p class="muted mt-2" style="font-size:var(--fs-sm)">طلباتك بترتبط بحسابك، فطول ما تسجيل الدخول مش مربوط، الصفحة مش هتقدر تجيب أي حاجة تخصك.</p>
       </div>
+
+      <div data-account-note class="mt-4"></div>
 
       <div class="row-between wrap-flex mt-4" data-auth-only hidden>
         <span class="muted" style="font-size:var(--fs-sm)">مسجّل دخول: <span class="mono" data-user-email></span></span>
@@ -81,7 +83,7 @@
         </div>
       </div>
 
-      <p class="dim mt-5" style="font-size:var(--fs-xs)">دي بيانات تجريبية للعرض. الحساب الحقيقي هيتربط بتسجيل الدخول وSupabase بعدين.</p>
+      <p class="dim mt-5" style="font-size:var(--fs-xs)">الطلبات هنا جاية من خدمة المنصة مباشرة. جدولا «دوميناتي» و«التجديد» لسه فاضيين لأن خدمة إدارة الدومينات مش متاحة بعد.</p>
     </div>
   </main>
 
@@ -93,7 +95,10 @@
   </footer>
 
   <div class="scrim" data-dismiss></div>
+  <script src="assets/js/config.js"></script>
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/api.js"></script>
   <script src="assets/js/account.js"></script>
   <script src="assets/js/auth-guard.js"></script>
 </body>
