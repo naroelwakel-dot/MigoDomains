@@ -191,6 +191,25 @@ test("setDnssec بيقلب الإعداد", () => {
   assert.equal(p.getDomainDetails("sec.com").dnssec, true);
 });
 
+test("updateContacts بيعدّل الدور ويتحقق من الاسم والبريد", () => {
+  const p = fresh();
+  p.registerDomain({ name: "contact.com", registrant: CUSTOMER });
+  const out = p.updateContacts({ name: "contact.com", contacts: { admin: { name: "سارة", email: "sara@example.test" } } });
+  assert.deepEqual(out.updatedRoles, ["admin"]);
+  assert.equal(p.getDomainDetails("contact.com").admin.email, "sara@example.test");
+  assert.equal(code(() => p.updateContacts({ name: "contact.com", contacts: { admin: { name: "بدون بريد" } } })), PROVIDER_ERROR_CODES.CONTACT_INVALID);
+  assert.equal(code(() => p.updateContacts({ name: "contact.com", contacts: {} })), PROVIDER_ERROR_CODES.CONTACT_INVALID);
+});
+
+test("updateContacts بيرفض بيانات الموزّع كمالك رسمي", () => {
+  const p = fresh();
+  p.registerDomain({ name: "owner.com", registrant: CUSTOMER });
+  assert.equal(
+    code(() => p.updateContacts({ name: "owner.com", contacts: { registrant: { name: "Migo AI", email: "ops@migo.test" } } })),
+    PROVIDER_ERROR_CODES.REGISTRANT_REQUIRED
+  );
+});
+
 /* --------------------------------------------------------------- Nameservers */
 
 test("الـNameservers: من 2 لـ6 وبصيغة صحيحة", () => {
