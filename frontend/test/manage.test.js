@@ -11,11 +11,24 @@ import { makeDom, load, jsonResponse, settle, src, page, codeOnly } from "./dom-
 const API = { baseUrl: "https://api.example.com" };
 const SESSION = { access_token: "tok_1" };
 const NS = ["ns1.new-dns.test", "ns2.new-dns.test"];
+const DNS = [
+  { id: "rec-ns1", type: "NS", name: "@", value: "ns1.migo-dns.test", ttl: 3600, authority: true },
+  { id: "rec-a", type: "A", name: "@", value: "192.0.2.10", ttl: 3600, authority: false }
+];
 
 function routes(opts = {}) {
   const seen = [];
   const fetch = (url, init) => {
     seen.push({ url, init, body: init && init.body ? JSON.parse(init.body) : null });
+    if (url.indexOf("/dns/records") !== -1) {
+      if (init && init.method === "POST") {
+        if (opts.rejectDns) return jsonResponse(400, { ok: false, error: { code: "VALIDATION", message: "عنوان A غير صحيح" } });
+        const records = opts.dnsApplied || JSON.parse(init.body).records.map((r, i) => ({ id: "rec-" + i, authority: false, ...r }));
+        return jsonResponse(200, { ok: true, domain: "migo-egypt.com", replaced: true, records: records });
+      }
+      if (opts.records === null) return jsonResponse(404, { ok: false, error: { code: "NOT_FOUND", message: "مش موجود" } });
+      return jsonResponse(200, { ok: true, domain: "migo-egypt.com", records: opts.records || DNS });
+    }
     if (url.endsWith("/dns")) {
       if (opts.reject) return jsonResponse(403, { ok: false, error: { code: "FORBIDDEN", message: "مالكش صلاحية على المورد ده" } });
       return jsonResponse(200, { ok: true, domain: "migo-egypt.com", nameservers: opts.applied || NS });
@@ -55,7 +68,7 @@ test("manage.html: بيحمّل config و auth و api قبل manage.js", () => {
   assert.ok(i("config.js") > -1 && i("api.js") > -1 && i("auth.js") > -1, "ملفات الربط ناقصة");
   assert.ok(i("config.js") < i("api.js"), "config.js لازم يجي قبل api.js");
   assert.ok(i("api.js") < i("manage.js"), "api.js لازم يجي قبل manage.js");
-  assert.match(html, /حفظ الـNameservers هو الإجراء الوحيد المتوصل بالخدمة/);
+  assert.match(html, /حفظ الـNameservers وسجلات DNS هما الإجراءان المتوصلان بالخدمة/);
 });
 
 test("manage.html: مفيش أسعار ثابتة في الصفحة", () => {
@@ -123,18 +136,20 @@ test("حفظ الـNameservers: من غير جلسة -> بيطلب تسجيل د
 
 test("الفحص المحلي: أقل من خادمين = رفض من غير نداء للخدمة", async () => {
   const ctx = await openManage();
+  const before = ctx.__seen.length;
   submitNs(ctx, "ns1.only.test");
   await settle();
   assert.match(ctx.__node("#nsHint").textContent, /من 2 لـ6/);
-  assert.equal(ctx.__seen.length, 0);
+  assert.equal(ctx.__seen.length, before, "ممنوع نداء الخدمة على بيانات غلط");
 });
 
 test("الفحص المحلي: اسم خادم غلط = رفض من غير نداء للخدمة", async () => {
   const ctx = await openManage();
+  const before = ctx.__seen.length;
   submitNs(ctx, "ns1.ok.test\nnot a host");
   await settle();
   assert.match(ctx.__node("#nsHint").textContent, /اسم خادم غير صحيح/);
-  assert.equal(ctx.__seen.length, 0);
+  assert.equal(ctx.__seen.length, before, "ممنوع نداء الخدمة على بيانات غلط");
 });
 
 test("استعادة الافتراضي: بتروح للخدمة كمان، مش بتغيّر الصفحة بس", async () => {
@@ -146,11 +161,130 @@ test("استعادة الافتراضي: بتروح للخدمة كمان، مش
   assert.deepEqual(call.body.nameservers, ["ns1.migo-dns.test", "ns2.migo-dns.test"]);
 });
 
+/* ------------------------------ سجلات DNS ------------------------------ */
+
+async function openDns(opts = {}) {
+  const ctx = await openManage(opts);
+  await settle();
+  return ctx;
+}
+
+/** بيملّي فورم إضافة السجل ويبعته. */
+function addRecord(ctx, { type = "A", name = "@", value = "198.51.100.7", ttl = "3600" } = {}) {
+  ctx.__node("#dnsType").value = type;
+  ctx.__node("#dnsName").value = name;
+  ctx.__node("#dnsValue").value = value;
+  ctx.__node("#dnsTtl").value = ttl;
+  ctx.__fire(ctx.__node("#dnsForm"), "submit");
+}
+
+/** بيضغط زر الحذف في صف معيّن. */
+function clickDelete(ctx, index) {
+  const body = ctx.__node("#dnsBody");
+  body.setAttribute("data-del", String(index));
+  ctx.__fire(body, "click");
+  delete body._attrs["data-del"];
+}
+
+test("السجلات بتتجاب من الخدمة أول ما الصفحة تفتح", async () => {
+  const ctx = await openDns({ records: [
+    { id: "rec-1", type: "A", name: "@", value: "203.0.113.9", ttl: 300, authority: false }
+  ] });
+  const call = ctx.__seen.filter((c) => c.url.indexOf("/dns/records") !== -1).pop();
+  assert.ok(call, "الصفحة مجابتش السجلات من الخدمة");
+  assert.match(call.url, /domain=migo-egypt\.com/);
+  assert.match(call.init.headers.authorization, /^Bearer tok_1$/);
+  assert.match(ctx.__node("#dnsBody").innerHTML, /203\.0\.113\.9/);
+});
+
+test("الإضافة بتبعت الـzone كاملة للخدمة، والجدول بيعرض رد الخدمة", async () => {
+  const ctx = await openDns();
+  addRecord(ctx, { type: "A", name: "app", value: "198.51.100.7" });
+  await settle();
+
+  const call = ctx.__seen.filter((c) => c.url.endsWith("/dns/records") && c.init.method === "POST").pop();
+  assert.ok(call, "الطلب مبعتش للخدمة");
+  assert.equal(call.body.domain, "migo-egypt.com");
+  assert.ok(call.body.records.some((r) => r.type === "A" && r.value === "198.51.100.7"), "السجل الجديد مش في الطلب");
+  assert.match(ctx.__node("#dnsHint").textContent, /أكّدت التحديث/);
+});
+
+test("سجلات السلطة مش بتتبعت للخدمة أبدًا", async () => {
+  const ctx = await openDns();
+  addRecord(ctx);
+  await settle();
+  const call = ctx.__seen.filter((c) => c.url.endsWith("/dns/records") && c.init.method === "POST").pop();
+  const types = call.body.records.map((r) => r.type);
+  assert.equal(types.includes("NS"), false, "سجلات السلطة ممنوعة في الطلب");
+  assert.equal(types.includes("CAA"), false);
+});
+
+test("الحذف بيعيد بعت الـzone بدون السجل", async () => {
+  const ctx = await openDns({ records: [
+    { id: "a", type: "A", name: "@", value: "192.0.2.1", ttl: 3600, authority: false },
+    { id: "b", type: "TXT", name: "@", value: "v=spf1 -all", ttl: 3600, authority: false }
+  ] });
+  clickDelete(ctx, 1);
+  await settle();
+  const call = ctx.__seen.filter((c) => c.url.endsWith("/dns/records") && c.init.method === "POST").pop();
+  assert.ok(call, "الحذف مبعتش للخدمة");
+  assert.deepEqual(call.body.records.map((r) => r.value), ["192.0.2.1"]);
+});
+
+test("حذف سجل سلطة مرفوض من غير أي نداء", async () => {
+  const ctx = await openDns();
+  const before = ctx.__seen.length;
+  clickDelete(ctx, 0); // أول سجل = NS (authority)
+  await settle();
+  assert.equal(ctx.__seen.length, before, "ممنوع نداء الخدمة على سجل سلطة");
+  assert.match(ctx.__node("#dnsBody").innerHTML, /NS/);
+});
+
+test("رفض الخدمة بيظهر بالرسالة والكود، والجدول ما بيتغيّرش", async () => {
+  const ctx = await openDns({ rejectDns: true });
+  const before = ctx.__node("#dnsBody").innerHTML;
+  addRecord(ctx, { value: "198.51.100.9" });
+  await settle();
+  const hint = ctx.__node("#dnsHint").textContent;
+  assert.match(hint, /الخدمة رفضت التغيير/);
+  assert.match(hint, /VALIDATION/);
+  assert.equal(ctx.__node("#dnsBody").innerHTML, before, "الجدول اتغيّر من غير تأكيد الخدمة");
+});
+
+test("الخدمة مش مربوطة: مفيش نداء ولا حفظ، والديمو باقي", async () => {
+  const ctx = await openDns({ api: { baseUrl: "" } });
+  const before = ctx.__node("#dnsBody").innerHTML;
+  addRecord(ctx);
+  await settle();
+  assert.equal(ctx.__seen.length, 0);
+  assert.match(ctx.__node("#dnsHint").textContent, /مش مربوطة/);
+  assert.equal(ctx.__node("#dnsBody").innerHTML, before);
+});
+
+test("من غير جلسة: بيطلب تسجيل دخول من غير نداء", async () => {
+  const ctx = await openDns({ signedIn: false, session: null });
+  addRecord(ctx);
+  await settle();
+  assert.equal(ctx.__seen.length, 0);
+  assert.match(ctx.__node("#dnsHint").textContent, /سجّل دخولك/);
+});
+
+test("الفحص المحلي: IPv4 غلط = رفض من غير نداء للخدمة", async () => {
+  const ctx = await openDns();
+  const before = ctx.__seen.length;
+  addRecord(ctx, { type: "A", value: "999.1.1.1" });
+  await settle();
+  assert.match(ctx.__node("#dnsError").textContent, /A لازم يكون IPv4/);
+  assert.equal(ctx.__seen.length, before, "ممنوع نداء الخدمة على بيانات غلط");
+});
+
 /* --------------------------------- حماية --------------------------------- */
 
 test("manage.js: القرار النهائي عند الخدمة (بينادي setNameservers)", () => {
   const code = codeOnly(src("manage.js"));
   assert.match(code, /setnameservers/);
+  assert.match(code, /getdnsrecords/);
+  assert.match(code, /updatednsrecords/);
   assert.match(code, /migoapi/);
   // ممنوع أي مفتاح سري في الواجهة
   assert.equal(/service_role|service_role_key/.test(code), false);
