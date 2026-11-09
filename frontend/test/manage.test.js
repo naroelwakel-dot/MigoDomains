@@ -29,6 +29,23 @@ function routes(opts = {}) {
       if (opts.records === null) return jsonResponse(404, { ok: false, error: { code: "NOT_FOUND", message: "مش موجود" } });
       return jsonResponse(200, { ok: true, domain: "migo-egypt.com", records: opts.records || DNS });
     }
+    if (url.indexOf("/domain/") !== -1) {
+      if (url.indexOf("/lock") !== -1) {
+        if (opts.rejectLock) return jsonResponse(403, { ok: false, error: { code: "FORBIDDEN", message: "ممنوع تغيير القفل" } });
+        return jsonResponse(200, { ok: true, domain: "migo-egypt.com", locked: JSON.parse(init.body).locked, locks: [] });
+      }
+      if (url.indexOf("/dnssec") !== -1) {
+        return jsonResponse(200, { ok: true, domain: "migo-egypt.com", dnssec: JSON.parse(init.body).enabled });
+      }
+      if (url.indexOf("/transfer-eligibility") !== -1) {
+        return jsonResponse(200, { ok: true, eligible: opts.eligible === true, reasons: opts.eligible ? [] : [{ code: "TRANSFER_LOCKED", message: "قفل النقل مفعّل (clientTransferProhibited)" }], status: "ACTIVE" });
+      }
+      return jsonResponse(200, { ok: true, domain: "migo-egypt.com", details: opts.details || {
+        domain: "migo-egypt.com", status: "ACTIVE", registeredAt: "2025-11-12", expiresAt: "2028-01-05",
+        nameservers: ["ns1.migo-dns.test", "ns2.migo-dns.test"], transferLock: false, locks: [], dnssec: false,
+        registrant: { name: "أحمد العميل", email: "owner@example.test", country: "EG" }
+      } });
+    }
     if (url.endsWith("/dns")) {
       if (opts.reject) return jsonResponse(403, { ok: false, error: { code: "FORBIDDEN", message: "مالكش صلاحية على المورد ده" } });
       return jsonResponse(200, { ok: true, domain: "migo-egypt.com", nameservers: opts.applied || NS });
@@ -68,7 +85,7 @@ test("manage.html: بيحمّل config و auth و api قبل manage.js", () => {
   assert.ok(i("config.js") > -1 && i("api.js") > -1 && i("auth.js") > -1, "ملفات الربط ناقصة");
   assert.ok(i("config.js") < i("api.js"), "config.js لازم يجي قبل api.js");
   assert.ok(i("api.js") < i("manage.js"), "api.js لازم يجي قبل manage.js");
-  assert.match(html, /حفظ الـNameservers وسجلات DNS هما الإجراءان المتوصلان بالخدمة/);
+  assert.match(html, /الـNameservers وسجلات DNS وقفل النقل وDNSSEC إجراءات متوصلة بالخدمة/);
 });
 
 test("manage.html: مفيش أسعار ثابتة في الصفحة", () => {
@@ -278,6 +295,69 @@ test("الفحص المحلي: IPv4 غلط = رفض من غير نداء للخ�
   assert.equal(ctx.__seen.length, before, "ممنوع نداء الخدمة على بيانات غلط");
 });
 
+/* --------------------- التفاصيل والأمان وأهلية النقل --------------------- */
+
+test("تفاصيل الدومين بتتجاب من الخدمة وتظهر في الصفحة", async () => {
+  const ctx = await openDns();
+  const call = ctx.__seen.filter((c) => /\/domain\//.test(c.url) && c.url.indexOf("/lock") === -1 && c.url.indexOf("/dnssec") === -1 && c.url.indexOf("/transfer-eligibility") === -1).pop();
+  assert.ok(call, "الصفحة مجابتش تفاصيل الدومين من الخدمة");
+  assert.match(ctx.__node("#ownerValue").textContent, /owner@example\.test/);
+  assert.match(ctx.__node("#createdValue").textContent, /12\/11\/2025/);
+});
+
+test("قفل النقل بيتغيّر على الخدمة، والصفحة بتعكس رد الخدمة", async () => {
+  const ctx = await openDns();
+  ctx.__click(ctx.__node("#lockToggle"));
+  await settle();
+  const call = ctx.__seen.filter((c) => c.url.indexOf("/lock") !== -1).pop();
+  assert.ok(call, "التغيير مبعتش للخدمة");
+  assert.equal(call.init.method, "POST");
+  assert.equal(call.body.locked, true, "القفل كان متوقف فالمطلوب يفعّله");
+  assert.match(ctx.__node("#lockToggle").textContent, /مفعّل/);
+  assert.match(ctx.__node("#securityHint").textContent, /أكّدت التحديث/);
+});
+
+test("DNSSEC بيتغيّر على الخدمة كمان", async () => {
+  const ctx = await openDns();
+  ctx.__click(ctx.__node("#dnssecToggle"));
+  await settle();
+  const call = ctx.__seen.filter((c) => c.url.indexOf("/dnssec") !== -1).pop();
+  assert.ok(call, "التغيير مبعتش للخدمة");
+  assert.equal(call.body.enabled, true);
+  assert.match(ctx.__node("#dnssecToggle").textContent, /مفعّل/);
+});
+
+test("رفض الخدمة للقفل بيظهر، ومفيش تغيير محلي", async () => {
+  const ctx = await openDns({ rejectLock: true });
+  ctx.__click(ctx.__node("#lockToggle"));
+  await settle();
+  assert.match(ctx.__node("#securityHint").textContent, /الخدمة رفضت التغيير/);
+  assert.match(ctx.__node("#securityHint").textContent, /FORBIDDEN/);
+  assert.match(ctx.__node("#lockToggle").textContent, /متوقف/, "الحالة المحلية اتغيّرت من غير تأكيد الخدمة");
+});
+
+test("الخدمة مش مربوطة: التوجل بيقول كده ومفيش نداء", async () => {
+  const ctx = await openDns({ api: { baseUrl: "" } });
+  ctx.__click(ctx.__node("#lockToggle"));
+  await settle();
+  assert.equal(ctx.__seen.length, 0);
+  assert.match(ctx.__node("#securityHint").textContent, /مش مربوطة/);
+});
+
+test("أهلية النقل بتتجاب من الخدمة، والأسباب بتظهر والزرار مقفول", async () => {
+  const ctx = await openDns({ eligible: false });
+  const call = ctx.__seen.filter((c) => c.url.indexOf("/transfer-eligibility") !== -1).pop();
+  assert.ok(call, "الصفحة مجابتش الأهلية من الخدمة");
+  assert.match(ctx.__node("#eligList").innerHTML, /قفل النقل مفعّل/);
+  assert.equal(ctx.__node("#startTransfer").disabled, true);
+});
+
+test("أهلية متحققة عند الخدمة = الزرار مفتوح", async () => {
+  const ctx = await openDns({ eligible: true });
+  assert.equal(ctx.__node("#startTransfer").disabled, false);
+  assert.match(ctx.__node("#eligResult").innerHTML, /مؤهّل للنقل/);
+});
+
 /* --------------------------------- حماية --------------------------------- */
 
 test("manage.js: القرار النهائي عند الخدمة (بينادي setNameservers)", () => {
@@ -285,6 +365,9 @@ test("manage.js: القرار النهائي عند الخدمة (بينادي s
   assert.match(code, /setnameservers/);
   assert.match(code, /getdnsrecords/);
   assert.match(code, /updatednsrecords/);
+  assert.match(code, /settransferlock/);
+  assert.match(code, /setdnssec/);
+  assert.match(code, /gettransfereligibility/);
   assert.match(code, /migoapi/);
   // ممنوع أي مفتاح سري في الواجهة
   assert.equal(/service_role|service_role_key/.test(code), false);
