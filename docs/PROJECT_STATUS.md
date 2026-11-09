@@ -15,7 +15,7 @@
 | 6 | واجهة العميل | 🚧 **PARTIALLY_COMPLETED** | **11 صفحة** على `main` في `frontend/` (بلا لوحة الإدارة) — قائمة الصفحات المعتمدة كاملة |
 | 7 | لوحة الإدارة | 🚧 **PARTIALLY_COMPLETED** | 8 أقسام معتمدة في `frontend/admin.html`، والمحتوى التفاعلي اتبنى — ناقص ربط الباك إند والحماية الحقيقية (RLS) |
 | 8 | بنية إدارة DNS | 🚧 **PARTIALLY_COMPLETED** | مسارات DNS وطبقة الخدمة جاهزة (`workers/src/router.js` · `backend/lib/service.js`) — الربط الحقيقي محتاج مزوّد وشروط |
-| 9 | بنية الطلبات والدفع | ✅ **IMPLEMENTED · TESTED محليًا** | `backend/` — 17 · `workers/` — 15 · `tests/` — 16؛ مزوّد دفع وهمي + تحقّق HMAC للتوقيع |
+| 9 | بنية الطلبات والدفع | ✅ **IMPLEMENTED · TESTED محليًا** | `backend/` — 20 · `workers/` — 16 · `tests/` — 16؛ مزوّد دفع وهمي + تحقّق HMAC للتوقيع |
 | 10 | اختبارات الأمان والوظائف | ✅ **IMPLEMENTED · TESTED محليًا** | `tests/security.test.js` — منع تسريب التكلفة، توقيع الدفع، الصلاحيات، RLS |
 | 11 | التوثيق وتجهيز النشر | ⛔ **REQUIRES_APPROVAL** | النشر يحتاج موافقة |
 
