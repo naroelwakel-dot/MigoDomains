@@ -1,0 +1,10 @@
+{
+  "name": "migo-domains-workers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Migo Domains — واجهة الـAPI على Cloudflare Workers (طبقة رقيقة فوق منطق الخدمة).",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  }
+}
