@@ -38,6 +38,9 @@ const GRACE = Object.freeze({ EXPIRED_DAYS: 30, REDEMPTION_DAYS: 70 });
 const RECORD_TYPES = Object.freeze(["A", "AAAA", "CNAME", "MX", "TXT", "CAA", "NS"]);
 const AUTHORITY_TYPES = Object.freeze(["NS", "CAA"]);
 
+/** أدوار جهات الاتصال المعتمدة في التسجيل (نفس ترتيب الأعراف). */
+const CONTACT_ROLES = Object.freeze(["registrant", "admin", "tech", "billing"]);
+
 /**
  * قائمة أسعار **وهمية بالكامل**. مش أسعار Openprovider ولا أي مزوّد حقيقي،
  * وممنوع تُستخدم كسعر بيع أو كتكلفة في أي قرار. الغرض اختبار المنطق بس.
@@ -726,6 +729,35 @@ export function createMockProvider(options = {}) {
     return freezeDeep({ mock: true, name: record.name, dnssec: record.dnssec, source });
   }
 
+  /**
+   * تعديل جهات الاتصال. كل دور اتقدّم بيتحقق بنفس قواعد `ensureContact`
+   * (اسم + بريد صحيح)، وبيانات الموزّع (Migo) مرفوضة كمالك رسمي بنفس
+   * `REGISTRANT_REQUIRED` / `rule: PER_DOMAIN_REGISTRANT`.
+   */
+  function updateContacts(input = {}) {
+    trip("updateContacts");
+    requireCapability("contactsUpdate", "updateContacts");
+    const record = requireRecord(input.name);
+    const contacts = input.contacts || {};
+    const provided = CONTACT_ROLES.filter((role) => contacts[role] !== undefined && contacts[role] !== null);
+    if (provided.length === 0) {
+      throw new ProviderError("مفيش أي جهة اتصال في الطلب", PROVIDER_ERROR_CODES.CONTACT_INVALID, { role: null });
+    }
+    const next = {};
+    for (const role of provided) next[role] = ensureContact(contacts[role], role);
+    Object.assign(record, next);
+    return freezeDeep({
+      mock: true,
+      name: record.name,
+      updatedRoles: provided,
+      registrant: clone(record.registrant),
+      admin: clone(record.admin),
+      tech: clone(record.tech),
+      billing: clone(record.billing),
+      source,
+    });
+  }
+
   /* ------------------------------------------------------------------------
      7) الـNameservers
      ------------------------------------------------------------------------ */
@@ -928,6 +960,7 @@ export function createMockProvider(options = {}) {
     getAuthCode,
     setLock,
     setDnssec,
+    updateContacts,
     simulateTransferOutcome,
     // أدوات اختبار
     failNext,
