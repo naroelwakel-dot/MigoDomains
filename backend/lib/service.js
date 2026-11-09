@@ -14,7 +14,7 @@
 import { OPERATIONS, DEFAULT_CONFIG } from "../../pricing/lib/config.js";
 import { priceFromCost, toFixedString, toMicros, toDecimalString, convertToEgp } from "../../pricing/lib/index.js";
 import { buildQuoteFromProvider, recheckFromProvider } from "../../providers/lib/bridge.js";
-import { AVAILABILITY_STATES as S } from "../../providers/lib/states.js";
+import { AVAILABILITY_STATES as S, REGISTRY_LOCKS } from "../../providers/lib/states.js";
 import { ServiceError, SERVICE_ERROR_CODES as C } from "./errors.js";
 import { createAuditLog } from "./audit.js";
 import { createIdempotencyStore, fingerprint } from "./idempotency.js";
@@ -515,6 +515,82 @@ export function createBackendService({
     return Object.freeze({ ok: true, domain, replaced: true, records: kept.map(clientDnsRecord) });
   }
 
+  /* ---------------- تفاصيل الدومين · الأمان · أهلية النقل ---------------- */
+
+  function clientDomainDetails(d) {
+    const locks = Array.isArray(d.locks) ? d.locks.slice() : [];
+    return Object.freeze({
+      domain: d.name,
+      status: d.status || null,
+      registeredAt: d.registeredAt || null,
+      expiresAt: d.expiresAt || null,
+      nameservers: Array.isArray(d.nameservers) ? d.nameservers.slice() : [],
+      transferLock: locks.includes(REGISTRY_LOCKS.TRANSFER_PROHIBITED),
+      locks,
+      dnssec: Boolean(d.dnssec),
+      registrant: d.registrant
+        ? Object.freeze({ name: d.registrant.name || null, email: d.registrant.email || null, country: d.registrant.country || null })
+        : null,
+    });
+  }
+
+  async function getDomain({ domain, claims } = {}) {
+    requireOwnedDomainRecord(domain, claims);
+    if (typeof provider.getDomainDetails !== "function") throw new ServiceError("المزوّد لا يدعم قراءة تفاصيل الدومين", C.PROVIDER_ERROR);
+    const name = validateDomain(domain);
+    const d = await provider.getDomainDetails(name);
+    return Object.freeze({ ok: true, domain: name, details: clientDomainDetails(d) });
+  }
+
+  async function setTransferLock({ domain, locked, claims } = {}) {
+    requireOwnedDomainRecord(domain, claims);
+    if (typeof provider.setLock !== "function") throw new ServiceError("المزوّد لا يدعم قفل النقل", C.PROVIDER_ERROR);
+    const name = validateDomain(domain);
+    let out;
+    try {
+      out = await provider.setLock(name, locked === true);
+    } catch (err) {
+      throw new ServiceError("فشل تغيير قفل النقل عند المزوّد", C.PROVIDER_ERROR, { code: err && err.code ? err.code : null });
+    }
+    audit.append({ action: "domain.lock_changed", target: name, actor: claims && claims.sub, detail: { locked: out.locked === true } });
+    return Object.freeze({ ok: true, domain: name, locked: out.locked === true, locks: Array.isArray(out.locks) ? out.locks.slice() : [] });
+  }
+
+  async function setDnssec({ domain, enabled, claims } = {}) {
+    requireOwnedDomainRecord(domain, claims);
+    if (typeof provider.setDnssec !== "function") throw new ServiceError("المزوّد لا يدعم DNSSEC", C.PROVIDER_ERROR);
+    const name = validateDomain(domain);
+    let out;
+    try {
+      out = await provider.setDnssec(name, enabled === true);
+    } catch (err) {
+      throw new ServiceError("فشل تغيير DNSSEC عند المزوّد", C.PROVIDER_ERROR, { code: err && err.code ? err.code : null });
+    }
+    audit.append({ action: "domain.dnssec_changed", target: name, actor: claims && claims.sub, detail: { enabled: out.dnssec === true } });
+    return Object.freeze({ ok: true, domain: name, dnssec: out.dnssec === true });
+  }
+
+  async function getTransferEligibility({ domain, claims } = {}) {
+    requireOwnedDomainRecord(domain, claims);
+    if (typeof provider.checkTransferEligibility !== "function") {
+      throw new ServiceError("المزوّد لا يدعم فحص أهلية النقل", C.PROVIDER_ERROR);
+    }
+    const name = validateDomain(domain);
+    const out = await provider.checkTransferEligibility(name);
+    const reasons = Array.isArray(out.reasons)
+      ? out.reasons.map((r) => Object.freeze({ code: (r && r.code) || null, message: (r && r.message) || null }))
+      : [];
+    return Object.freeze({
+      ok: true,
+      domain: name,
+      eligible: out.eligible === true,
+      status: out.status || null,
+      reasons,
+      checkedAt: out.checkedAt || null,
+      daysSinceAnchor: Number.isFinite(out.daysSinceAnchor) ? out.daysSinceAnchor : null,
+    });
+  }
+
   return {
     search,
     checkAvailability,
@@ -532,6 +608,10 @@ export function createBackendService({
     setNameservers,
     getDnsRecords,
     updateDnsRecords,
+    getDomain,
+    setTransferLock,
+    setDnssec,
+    getTransferEligibility,
     audit,
     idempotency,
     authz,
