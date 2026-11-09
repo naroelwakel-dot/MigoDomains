@@ -28,6 +28,8 @@ export const ROUTES = Object.freeze([
   { id: "domain.dnssec", method: "POST", path: "/domain/:name/dnssec", auth: "user" },
   { id: "domain.transferEligibility", method: "GET", path: "/domain/:name/transfer-eligibility", auth: "user" },
   { id: "domain.authCode", method: "GET", path: "/domain/:name/auth-code", auth: "user" },
+  { id: "domain.contacts", method: "POST", path: "/domain/:name/contacts", auth: "user" },
+  { id: "domain.transferOut", method: "POST", path: "/domain/:name/transfer-out", auth: "user" },
   { id: "admin.pricePreview", method: "POST", path: "/admin/price-preview", auth: "admin" },
 ]);
 
