@@ -40,6 +40,23 @@ function routes(opts = {}) {
       if (url.indexOf("/transfer-eligibility") !== -1) {
         return jsonResponse(200, { ok: true, eligible: opts.eligible === true, reasons: opts.eligible ? [] : [{ code: "TRANSFER_LOCKED", message: "قفل النقل مفعّل (clientTransferProhibited)" }], status: "ACTIVE" });
       }
+      if (url.indexOf("/transfer-out") !== -1) {
+        if (opts.transferBlocked) return jsonResponse(200, { ok: true, domain: "migo-egypt.com", status: "BLOCKED", eligible: false, reasons: [{ code: "TRANSFER_LOCKED", message: "قفل النقل مفعّل (clientTransferProhibited)" }] });
+        return jsonResponse(200, { ok: true, domain: "migo-egypt.com", status: "READY_TO_TRANSFER", eligible: true, unlocked: opts.unlocked === true, authCodeRequired: true });
+      }
+      if (url.indexOf("/contacts") !== -1) {
+        if (opts.rejectContacts) return jsonResponse(400, { ok: false, error: { code: "VALIDATION", message: "بيانات الموزّع ممنوعة كمالك رسمي" } });
+        const sent = JSON.parse(init.body).contacts;
+        return jsonResponse(200, {
+          ok: true, domain: "migo-egypt.com", updatedRoles: Object.keys(sent),
+          contacts: {
+            registrant: { name: "أحمد العميل", email: "owner@example.test" },
+            admin: sent.admin || { name: "أحمد العميل", email: "admin@example.test" },
+            tech: { name: "فريق Migo", email: "tech@migo.test" },
+            billing: { name: "حسابات Migo", email: "billing@migo.test" }
+          }
+        });
+      }
       if (url.indexOf("/auth-code") !== -1) {
         if (opts.rejectAuthCode) return jsonResponse(409, { ok: false, error: { code: "PROVIDER_ERROR", message: "المزوّد رفض استخراج الرمز" } });
         if (opts.noAuthCode) return jsonResponse(200, { ok: true, domain: "migo-egypt.com", authCode: null, sensitive: true });
@@ -96,9 +113,10 @@ test("manage.html: بيحمّل config و auth و api قبل manage.js", () => {
   assert.ok(i("config.js") > -1 && i("api.js") > -1 && i("auth.js") > -1, "ملفات الربط ناقصة");
   assert.ok(i("config.js") < i("api.js"), "config.js لازم يجي قبل api.js");
   assert.ok(i("api.js") < i("manage.js"), "api.js لازم يجي قبل manage.js");
-  assert.match(html, /الـNameservers وسجلات DNS وقفل النقل وDNSSEC وتفاصيل الدومين وجهات الاتصال ورمز النقل وأهلية النقل كلها بتيجي من الخدمة/);
-  assert.match(html, /اللي لسه مش موصّل: تعديل بيانات الاتصال/);
-  assert.match(html, /مفيش زرار فيهم بيدّعي نجاح/);
+  assert.match(html, /الـNameservers وسجلات DNS وقفل النقل وDNSSEC وتفاصيل الدومين وجهات الاتصال/);
+  assert.match(html, /وتجهيز النقل الخارج كلها بتيجي من الخدمة/);
+  assert.match(html, /اللي لسه مش موصّل: التجديد/);
+  assert.match(html, /مفيش زرار بيدّعي نجاح/);
 });
 
 test("manage.html: مفيش أسعار ثابتة في الصفحة", () => {
@@ -426,20 +444,100 @@ test("الخدمة مش مربوطة: طلب الرمز بيقول كده ومف
   assert.match(ctx.__node("#authHint").textContent, /مش مربوطة/);
 });
 
-/* --------------------- اللي لسه مش موصّل: لازم يقول كده --------------------- */
+/* --------------------- تعديل جهات الاتصال --------------------- */
 
-test("بدء النقل: بيقول إنه مش موصّل، ومفيش أي نداء للخدمة", async () => {
-  const ctx = await openDns({ eligible: true });
-  const before = ctx.__seen.length;
-  assert.equal(ctx.__node("#startTransfer").disabled, false, "الزرار لازم يبقى مفتوح لو الأهلية متحققة");
-  ctx.__click(ctx.__node("#startTransfer"));
+function clickSave(ctx, key) {
+  const grid = ctx.__node("#contactsGrid");
+  grid.setAttribute("data-save", key);
+  ctx.__fire(grid, "click");
+  delete grid._attrs["data-save"];
+}
+
+test("تعديل جهة اتصال: بيتبعت للخدمة، والكارت بيتحدّث برد الخدمة", async () => {
+  const ctx = await openDns();
+  ctx.__node("#cname-admin").value = "سارة";
+  ctx.__node("#cemail-admin").value = "sara@example.test";
+  clickSave(ctx, "admin");
   await settle();
-  assert.match(ctx.__node("#transferHint").textContent, /مابعتش/);
-  assert.match(ctx.__node("#transferHint").textContent, /نقل خارج/);
-  assert.equal(ctx.__seen.length, before, "ممنوع أي نداء خدمة على إجراء مش موصّل");
+
+  const call = ctx.__seen.filter((c) => c.url.indexOf("/contacts") !== -1).pop();
+  assert.ok(call, "التعديل مبعتش للخدمة");
+  assert.equal(call.init.method, "POST");
+  assert.deepEqual(call.body.contacts, { admin: { name: "سارة", email: "sara@example.test" } });
+  assert.match(call.init.headers.authorization, /^Bearer tok_1$/);
+  assert.match(ctx.__node("#contactsHint").textContent, /أكّدت تعديل/);
+  assert.match(ctx.__node("#contactsGrid").innerHTML, /sara@example\.test/);
 });
 
-test("manage.html: الأزرار اللي مش موصّلة مابتقولش نجاح ولا (تجريبي)", () => {
+test("تعديل جهة اتصال: رفض الخدمة بيظهر، والكروت ما بتتغيّرش", async () => {
+  const ctx = await openDns({ rejectContacts: true });
+  const before = ctx.__node("#contactsGrid").innerHTML;
+  ctx.__node("#cname-admin").value = "x";
+  ctx.__node("#cemail-admin").value = "x@y.test";
+  clickSave(ctx, "admin");
+  await settle();
+  assert.match(ctx.__node("#contactsHint").textContent, /الخدمة رفضت التعديل/);
+  assert.match(ctx.__node("#contactsHint").textContent, /VALIDATION/);
+  assert.equal(ctx.__node("#contactsGrid").innerHTML, before, "الكروت اتغيّرت من غير تأكيد الخدمة");
+});
+
+test("تعديل جهة اتصال: من غير اسم/بريد = رفض محلي بدون نداء", async () => {
+  const ctx = await openDns();
+  const before = ctx.__seen.length;
+  ctx.__node("#cname-admin").value = "";
+  ctx.__node("#cemail-admin").value = "";
+  clickSave(ctx, "admin");
+  await settle();
+  assert.equal(ctx.__seen.length, before, "ممنوع نداء الخدمة على بيانات ناقصة");
+  assert.match(ctx.__node("#contactsHint").textContent, /لازم اسم وبريد/);
+});
+
+test("تعديل جهة اتصال: الخدمة مش مربوطة -> مفيش نداء", async () => {
+  const ctx = await openDns({ api: { baseUrl: "" } });
+  const before = ctx.__seen.length;
+  ctx.__node("#cname-admin").value = "x";
+  ctx.__node("#cemail-admin").value = "x@y.test";
+  clickSave(ctx, "admin");
+  await settle();
+  assert.equal(ctx.__seen.length, before);
+  assert.match(ctx.__node("#contactsHint").textContent, /مش مربوطة/);
+});
+
+/* --------------------- تجهيز النقل الخارج --------------------- */
+
+test("تجهيز النقل: بيتبعت للخدمة، والصفحة بتعرض رد الخدمة", async () => {
+  const ctx = await openDns({ eligible: true, unlocked: true });
+  ctx.__click(ctx.__node("#startTransfer"));
+  await settle();
+
+  const call = ctx.__seen.filter((c) => c.url.indexOf("/transfer-out") !== -1).pop();
+  assert.ok(call, "التجهيز مبعتش للخدمة");
+  assert.equal(call.init.method, "POST");
+  assert.match(call.init.headers.authorization, /^Bearer tok_1$/);
+  assert.match(ctx.__node("#transferHint").textContent, /جهّزت النقل/);
+  assert.match(ctx.__node("#lockToggle").textContent, /متوقف/, "القفل لازم يتعكس من رد الخدمة");
+});
+
+test("تجهيز النقل: لو الخدمة قالت إنه غير مؤهّل، بتظهر الأسباب ومفيش ادّعاء تجهيز", async () => {
+  const ctx = await openDns({ eligible: true, transferBlocked: true });
+  ctx.__click(ctx.__node("#startTransfer"));
+  await settle();
+  assert.match(ctx.__node("#transferHint").textContent, /رفضت تجهيز النقل/);
+  assert.match(ctx.__node("#transferHint").textContent, /قفل النقل مفعّل/);
+});
+
+test("تجهيز النقل: الخدمة مش مربوطة -> مفيش نداء", async () => {
+  const ctx = await openDns({ api: { baseUrl: "" } });
+  const before = ctx.__seen.length;
+  ctx.__click(ctx.__node("#startTransfer"));
+  await settle();
+  assert.equal(ctx.__seen.length, before);
+  assert.match(ctx.__node("#transferHint").textContent, /مش مربوطة/);
+});
+
+/* --------------------- اللي لسه مش موصّل: لازم يقول كده --------------------- */
+
+test("manage.html: زرار التجديد مابيوعدش بنجاح ولا (تجريبي)", () => {
   const html = page("manage.html");
   assert.equal(/بدأ طلب نقل تجريبي/.test(html), false);
   assert.equal(/data-toast="تجديد[^"]*\(تجريبي\)/.test(html), false, "زرار التجديد لسه بيوعد بنجاح تجريبي");
@@ -447,9 +545,10 @@ test("manage.html: الأزرار اللي مش موصّلة مابتقولش ن
   assert.match(html, /مستنية قرار بوابة الدفع/);
 });
 
-test("manage.js: رسالة تعديل جهات الاتصال بتقول سبب التعطّل", () => {
+test("manage.js: تعديل جهات الاتصال وتجهيز النقل بيتبعتوا للخدمة", () => {
   const code = codeOnly(src("manage.js"));
-  assert.match(code, /مافيهوش دالة تعديل جهات الاتصال/);
+  assert.match(code, /updatecontacts/);
+  assert.match(code, /preparetransferout/);
   assert.equal(/بدأ طلب نقل تجريبي/.test(code), false, "لسه فيه رسالة نجاح تجريبية");
 });
 
@@ -465,6 +564,8 @@ test("manage.js: القرار النهائي عند الخدمة (بينادي s
   assert.match(code, /gettransfereligibility/);
   assert.match(code, /getdomain/);
   assert.match(code, /getauthcode/);
+  assert.match(code, /updatecontacts/);
+  assert.match(code, /preparetransferout/);
   assert.match(code, /migoapi/);
   // ممنوع أي مفتاح سري في الواجهة
   assert.equal(/service_role|service_role_key/.test(code), false);
