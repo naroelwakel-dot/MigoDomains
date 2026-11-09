@@ -130,6 +130,22 @@ test("الفلط الكامل عبر الـAPI: بحث → طلب → دفع →
   assert.equal((await jsonOf(done)).order.status, "PAID");
 });
 
+test("GET /domains محمي، وبيرجّع مصفوفة فاضية من غير دومينات مسجّلة", async () => {
+  const { app } = makeApp();
+
+  assert.equal(matchRoute("GET", "/domains").route.auth, "user", "المسار لازم يكون محمي");
+
+  const anon = await app.handle(req("GET", "/domains"));
+  assert.equal(anon.status, 401);
+  assert.equal((await jsonOf(anon)).error.code, "UNAUTHENTICATED");
+
+  const res = await app.handle(req("GET", "/domains", { headers: { "x-migo-claims": JSON.stringify(USER) } }));
+  assert.equal(res.status, 200);
+  const body = await jsonOf(res);
+  assert.equal(body.ok, true);
+  assert.deepEqual(body.domains, []);
+});
+
 test("الـwebhook بتوقيع غلط = 400", async () => {
   const { app } = makeApp();
   const res = await app.handle(new Request("https://api.migo.example/payment/webhook", { method: "POST", body: "{}", headers: { "x-migo-signature": "bad", "content-type": "application/json" } }));
