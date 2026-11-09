@@ -185,3 +185,47 @@ test("كل عملية حسّاسة مسجّلة في سجل التدقيق", asy
   assert.ok(actions.includes("order.paid"));
   assert.ok(actions.includes("order.completed"));
 });
+
+/* --------------------------- دومينات العميل --------------------------- */
+
+test("listDomains بيرجّع الدومينات المسجّلة بس، وبدون تكلفة ولا هامش", async () => {
+  const { service, payments } = build();
+  const { created } = await paidOrder(service, payments);
+  assert.deepEqual(service.listDomains(USER), [], "مفيش دومين قبل التنفيذ");
+
+  await service.fulfill({ orderId: created.orderId, allowMock: true, claims: USER });
+  const list = service.listDomains(USER);
+  assert.equal(list.length, 1);
+  const d = list[0];
+  assert.equal(d.domain, "shop-migo.com");
+  assert.equal(d.status, "ACTIVE");
+  assert.ok(d.expiresAt, "لازم يكون فيه تاريخ انتهاء");
+  assert.ok(Array.isArray(d.nameservers) && d.nameservers.length >= 2, "لازم يكون فيه سيرفرات أسماء");
+  assert.equal(d.orderId, created.orderId);
+  for (const bad of ["cost", "margin", "wholesale", "totalCostUsd", "marginUsd", "micros", "provenance"]) {
+    assert.equal(bad in d, false, "تسريب: " + bad);
+  }
+});
+
+test("listDomains مبني على الجلسة: عميل تاني مايشوفش حاجة، والمشرف بيشوف الكل", async () => {
+  const { service, payments } = build();
+  const { created } = await paidOrder(service, payments);
+  await service.fulfill({ orderId: created.orderId, allowMock: true, claims: USER });
+
+  assert.equal(service.listDomains({ sub: "user-2" }).length, 0);
+  assert.equal(service.listDomains({ sub: "admin-1", role: "admin" }).length, 1);
+  assert.throws(() => service.listDomains(), (e) => e.code === C.UNAUTHENTICATED);
+});
+
+test("listDomains مرتّب بالأقرب انتهاءً", async () => {
+  const { service, payments } = build();
+  const a = await paidOrder(service, payments, { domain: "aaa-migo.com" });
+  const b = await paidOrder(service, payments, { domain: "bbb-migo.com" });
+  await service.fulfill({ orderId: a.created.orderId, allowMock: true, claims: USER });
+  await service.fulfill({ orderId: b.created.orderId, allowMock: true, claims: USER });
+  const list = service.listDomains(USER);
+  assert.equal(list.length, 2);
+  for (let i = 1; i < list.length; i++) {
+    assert.ok(String(list[i - 1].expiresAt) <= String(list[i].expiresAt), "الترتيب غلط");
+  }
+});
