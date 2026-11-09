@@ -517,6 +517,16 @@ export function createBackendService({
 
   /* ---------------- تفاصيل الدومين · الأمان · أهلية النقل ---------------- */
 
+  function contactOf(c) {
+    if (!c) return null;
+    return Object.freeze({
+      name: c.name || null,
+      email: c.email || null,
+      phone: c.phone || null,
+      country: c.country || null,
+    });
+  }
+
   function clientDomainDetails(d) {
     const locks = Array.isArray(d.locks) ? d.locks.slice() : [];
     return Object.freeze({
@@ -528,9 +538,13 @@ export function createBackendService({
       transferLock: locks.includes(REGISTRY_LOCKS.TRANSFER_PROHIBITED),
       locks,
       dnssec: Boolean(d.dnssec),
-      registrant: d.registrant
-        ? Object.freeze({ name: d.registrant.name || null, email: d.registrant.email || null, country: d.registrant.country || null })
-        : null,
+      registrant: contactOf(d.registrant),
+      contacts: Object.freeze({
+        registrant: contactOf(d.registrant),
+        admin: contactOf(d.admin),
+        tech: contactOf(d.tech),
+        billing: contactOf(d.billing),
+      }),
     });
   }
 
@@ -570,8 +584,7 @@ export function createBackendService({
     return Object.freeze({ ok: true, domain: name, dnssec: out.dnssec === true });
   }
 
-  async function getTransferEligibility({ domain, claims } = {}) {
-    requireOwnedDomainRecord(domain, claims);
+  async function getTransferEligibility({ domain, claims } = {}) {    requireOwnedDomainRecord(domain, claims);
     if (typeof provider.checkTransferEligibility !== "function") {
       throw new ServiceError("المزوّد لا يدعم فحص أهلية النقل", C.PROVIDER_ERROR);
     }
@@ -588,6 +601,25 @@ export function createBackendService({
       reasons,
       checkedAt: out.checkedAt || null,
       daysSinceAnchor: Number.isFinite(out.daysSinceAnchor) ? out.daysSinceAnchor : null,
+    });
+  }
+
+  /**
+   * رمز النقل (Auth Code) — سرّي، وبيرجع **بس** لصاحب الدومين عند الطلب.
+   * ممنوع يتخزّن في تفاصيل الدومين أو أي استجابة تانية، ومسجّل في التدقيق.
+   */
+  async function getAuthCode({ domain, claims } = {}) {
+    requireOwnedDomainRecord(domain, claims);
+    if (typeof provider.getAuthCode !== "function") throw new ServiceError("المزوّد لا يدعم استخراج رمز النقل", C.PROVIDER_ERROR);
+    const name = validateDomain(domain);
+    const out = await provider.getAuthCode(name);
+    audit.append({ action: "domain.auth_code_revealed", target: name, actor: claims && claims.sub, detail: { sensitive: true } });
+    return Object.freeze({
+      ok: true,
+      domain: name,
+      authCode: out.authCode || null,
+      sensitive: true,
+      warning: out.warning || "سرّي: ممنوع يتشارك في مكان عام أو سجل غير محمي",
     });
   }
 
@@ -612,6 +644,7 @@ export function createBackendService({
     setTransferLock,
     setDnssec,
     getTransferEligibility,
+    getAuthCode,
     audit,
     idempotency,
     authz,
