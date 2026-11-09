@@ -276,7 +276,7 @@ test("GET /dns/records: عميل تاني مش بيشوف سجلات حد", asyn
 
 test("مسارات /domain/:name محمية، والمالك بس بيقدر", async () => {
   const { app, payments, service } = makeApp();
-  for (const [m, p] of [["GET", "/domain/x.com"], ["POST", "/domain/x.com/lock"], ["POST", "/domain/x.com/dnssec"], ["GET", "/domain/x.com/transfer-eligibility"], ["GET", "/domain/x.com/auth-code"]]) {
+  for (const [m, p] of [["GET", "/domain/x.com"], ["POST", "/domain/x.com/lock"], ["POST", "/domain/x.com/dnssec"], ["GET", "/domain/x.com/transfer-eligibility"], ["GET", "/domain/x.com/auth-code"], ["POST", "/domain/x.com/contacts"], ["POST", "/domain/x.com/transfer-out"]]) {
     assert.equal(matchRoute(m, p).route.auth, "user", p);
     assert.equal((await app.handle(req(m, p, { body: m === "POST" ? {} : undefined }))).status, 401, p);
   }
@@ -305,6 +305,57 @@ test("مسارات /domain/:name محمية، والمالك بس بيقدر", a
   assert.equal(e.ok, true);
   assert.equal(e.eligible, false, "لسه فيه DNSSEC مفتوح ولسه ما مرّوش 60 يوم");
   assert.ok(Array.isArray(e.reasons) && e.reasons.length >= 1);
+});
+
+test("POST /domain/:name/contacts: المالك بيعدّل، والرد من المزوّد", async () => {
+  const { app, payments, service } = makeApp();
+  const auth = await ownedDomain(service, payments, "api-contact.com");
+
+  const ok = await app.handle(req("POST", "/domain/api-contact.com/contacts", {
+    body: { contacts: { admin: { name: "سارة", email: "sara@example.test" } } },
+    headers: auth,
+  }));
+  assert.equal(ok.status, 200);
+  const body = await jsonOf(ok);
+  assert.equal(body.ok, true);
+  assert.deepEqual(body.updatedRoles, ["admin"]);
+  assert.equal(body.contacts.admin.email, "sara@example.test");
+
+  const bad = await app.handle(req("POST", "/domain/api-contact.com/contacts", {
+    body: { contacts: { registrant: { name: "Migo AI", email: "ops@migo.test" } } },
+    headers: auth,
+  }));
+  assert.equal(bad.status, 400, "بيانات الموزّع كمالك مرفوضة");
+
+  const other = { "x-migo-claims": JSON.stringify({ sub: "user-2", role: "customer" }) };
+  const denied = await app.handle(req("POST", "/domain/api-contact.com/contacts", {
+    body: { contacts: { admin: { name: "x", email: "x@y.test" } } },
+    headers: other,
+  }));
+  assert.equal(denied.status, 403);
+});
+
+test("POST /domain/:name/transfer-out: بيفحص ويجهّز، ومش بيدّعي إن النقل بدأ", async () => {
+  const { app, payments, service, provider } = makeApp();
+  const auth = await ownedDomain(service, payments, "api-tr.com");
+
+  const blocked = await app.handle(req("POST", "/domain/api-tr.com/transfer-out", { body: {}, headers: auth }));
+  assert.equal(blocked.status, 200);
+  const b = await jsonOf(blocked);
+  assert.equal(b.ok, true);
+  assert.equal(b.status, "BLOCKED");
+  assert.equal(b.eligible, false);
+  assert.ok(Array.isArray(b.reasons) && b.reasons.length >= 1);
+  assert.equal("authCode" in b, false);
+
+  // نقدّم تاريخ التسجيل عند المزوّد عشان الأهلية تتحقق.
+  provider.seedDomain("api-tr.com", { registeredAt: new Date("2025-01-01T00:00:00.000Z").toISOString(), years: 5 });
+  const ready = await app.handle(req("POST", "/domain/api-tr.com/transfer-out", { body: {}, headers: auth }));
+  assert.equal(ready.status, 200);
+  const r = await jsonOf(ready);
+  assert.equal(r.status, "READY_TO_TRANSFER");
+  assert.equal(r.eligible, true);
+  assert.equal(r.authCodeRequired, true);
 });
 
 test("GET /domain/:name/auth-code: المالك بس، والرمز سرّي ومسجّل", async () => {
