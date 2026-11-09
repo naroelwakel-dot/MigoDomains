@@ -29,12 +29,17 @@ export const REQUIRED_METHODS = Object.freeze([
 /**
  * دوال إضافية بنوصي بيها بشدة لأن دورة الحياة والمعمارية بتحتاجها.
  * غيابها مسموح (بتحذير)، لكن المنصة هتحتاجها في المراحل الجاية.
+ *
+ * ملاحظة على النقل الخارج (Transfer Out): مش محتاج دالة جديدة في العقد.
+ * النقل الخارج = فك القفل (`setLock`) + رمز النقل (`getAuthCode`)، والمسجّل
+ * المستلم هو اللي بيبدأ الطلب. `transferDomain` في العقد هي نقل **داخل**.
  */
 export const RECOMMENDED_METHODS = Object.freeze([
   "capabilities",
   "checkTransferEligibility",
   "getAuthCode",
   "setLock",
+  "updateContacts",
 ]);
 
 /** الدوال اللي بترجّع بيانات حسّاسة (Auth Code / EPP). */
