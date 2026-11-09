@@ -13,14 +13,33 @@ const ORDERS = [
   { orderId: "ORD-2", domain: "migo-egypt.net", operation: "registration", status: "AWAITING_PAYMENT", createdAt: "2026-11-08T11:00:00Z", quote: { sale: { usd: "13.99" }, egp: { available: false, value: null } } }
 ];
 
+const DOMAINS = [
+  { domain: "migo-egypt.com", status: "ACTIVE", expiresAt: "2027-11-08T10:00:00Z", nameservers: ["ns1.x", "ns2.x"], orderId: "ORD-1" },
+  { domain: "migo-egypt.net", status: "EXPIRED", expiresAt: "2026-11-20T10:00:00Z", nameservers: ["ns1.x", "ns2.x"], orderId: "ORD-2" }
+];
+
+function routes(opts = {}) {
+  return (url) => {
+    if (url.endsWith("/domains")) {
+      if (opts.domainsFail) return jsonResponse(500, { ok: false, error: { code: "PROVIDER_ERROR", message: "الخدمة واقعة." } });
+      return jsonResponse(200, { ok: true, domains: opts.domains || [] });
+    }
+    if (url.endsWith("/orders")) {
+      return jsonResponse(200, { ok: true, orders: opts.orders || [] });
+    }
+    return jsonResponse(404, { ok: false, error: { code: "NOT_FOUND", message: "مش موجود" } });
+  };
+}
+
 async function openAccount(opts = {}) {
   const ctx = makeDom({
     api: opts.api === undefined ? API : opts.api,
     session: opts.session === undefined ? SESSION : opts.session,
     signedIn: opts.signedIn === undefined ? true : opts.signedIn,
-    fetch: opts.fetch || (() => jsonResponse(200, { ok: true, orders: opts.orders || [] }))
+    fetch: opts.fetch || routes(opts)
   });
   load(ctx, "api.js");
+  load(ctx, "cart-store.js");
   load(ctx, "account.js");
   await settle();
   return ctx;
@@ -65,14 +84,42 @@ test("account: فشل النداء بيظهر بكوّده", async () => {
   assert.match(ctx.__node("[data-account-note]").innerHTML, /الجلسة انتهت/);
 });
 
-test("account: جدولا الدومينات والتجديد مبنيّان على خدمة مش موجودة، مش على بيانات وهمية", async () => {
-  const ctx = await openAccount();
+test("account: الدومينات بتيجي من الخدمة وبحالتها وتاريخ انتهائها", async () => {
+  const ctx = await openAccount({ domains: DOMAINS });
   const doms = ctx.__node("#domBody").innerHTML;
+  assert.match(doms, /migo-egypt\.com/);
+  assert.match(doms, /نشط/);
+  assert.match(doms, /منتهي/);
+  assert.match(doms, /2027/);
+
   const ren = ctx.__node("#renBody").innerHTML;
-  assert.match(doms, /مش متاحة/);
-  assert.match(ren, /هتظهر هنا/);
-  assert.equal(/migo-egypt/.test(doms), false, "ممنوع دومينات وهمية");
-  assert.equal(/migo-egypt/.test(ren), false, "ممنوع مواعيد تجديد وهمية");
+  assert.match(ren, /migo-egypt\.com/);
+  assert.match(ren, /data-renew="migo-egypt\.com"/);
+
+  assert.equal(ctx.__calls.filter((c) => c.url.endsWith("/domains")).length, 1);
+});
+
+test("account: مفيش دومينات -> رسالة واضحة في الجدولين", async () => {
+  const ctx = await openAccount({ domains: [] });
+  assert.match(ctx.__node("#domBody").innerHTML, /مفيش دومينات/);
+  assert.match(ctx.__node("#renBody").innerHTML, /مفيش دومينات/);
+});
+
+test("account: فشل تحميل الدومينات بيظهر بسببه", async () => {
+  const ctx = await openAccount({ domainsFail: true });
+  assert.match(ctx.__node("#domBody").innerHTML, /تعذّر تحميل الدومينات/);
+  assert.match(ctx.__node("#domBody").innerHTML, /الخدمة واقعة/);
+});
+
+test("account: زر التجديد بيضيف بند تجديد للسلة من غير أي سعر", async () => {
+  const ctx = await openAccount({ domains: DOMAINS });
+  const btn = ctx.__node("[data-renew]");
+  btn.setAttribute("data-renew", "migo-egypt.com");
+  ctx.__click(btn);
+  const raw = ctx.localStorage.getItem("migo-cart");
+  assert.match(raw, /"operation":"renewal"/);
+  assert.match(raw, /migo-egypt\.com/);
+  assert.equal(/price|usd|egp|amount/i.test(raw), false, "ممنوع أي سعر في السلة");
 });
 
 test("account.js: مفيش أرقام طلبات أو أسعار مكتوبة", () => {
