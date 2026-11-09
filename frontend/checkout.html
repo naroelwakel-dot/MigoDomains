@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>إتمام الدفع - Migo Domains</title>
+  <title>إتمام الطلب - Migo Domains</title>
   <meta name="robots" content="noindex">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,6 +22,7 @@
         <a href="index.html">الرئيسية</a>
         <a href="search.html">البحث عن دومين</a>
         <a href="cart.html">السلة</a>
+        <a href="account.html">حسابي</a>
         <button class="btn btn-sm" data-dir-toggle type="button" aria-pressed="false">EN / LTR</button>
       </nav>
     </div>
@@ -30,63 +31,71 @@
   <main id="main" class="section">
     <div class="wrap">
       <nav aria-label="مسار التنقل" class="dim" style="font-size:var(--fs-sm)">
-        <a href="cart.html">السلة</a> / <span aria-current="page">إتمام الدفع</span>
+        <a href="cart.html">السلة</a> / <span aria-current="page">إتمام الطلب</span>
       </nav>
-      <h1 class="h2 mt-4">إتمام الدفع</h1>
+      <h1 class="h2 mt-4">إتمام الطلب</h1>
 
-      <!-- الخطوات -->
-      <ol class="row wrap-flex mt-4" style="list-style:none;padding:0;gap:var(--s3)">
-        <li class="pill accent">1. الحساب</li>
-        <li class="pill accent">2. بيانات المالك</li>
-        <li class="pill accent">3. الدفع</li>
-        <li class="pill">4. التأكيد</li>
-      </ol>
+      <!-- الملخص والأسعار بيتعبّوا من خدمة المنصة -->
+      <div id="checkout-app">
+        <ol class="row wrap-flex mt-4" style="list-style:none;padding:0;gap:var(--s3)">
+          <li class="pill accent">1. الحساب</li>
+          <li class="pill accent">2. بيانات المالك</li>
+          <li class="pill accent">3. الدفع</li>
+          <li class="pill">4. التأكيد</li>
+        </ol>
 
-      <div class="mt-5 grid" style="grid-template-columns:2fr 1fr;align-items:start">
-        <form class="card" id="pay-form" novalidate>
-          <h3 class="h3">بيانات الحساب</h3>
-          <div class="grid grid-2 mt-4">
-            <div class="field"><label for="email">البريد الإلكتروني</label><input class="input" id="email" type="email" placeholder="name@example.com"></div>
-            <div class="field"><label for="phone">رقم الهاتف</label><input class="input" id="phone" type="tel" placeholder="+20 ..."></div>
-          </div>
+        <div data-notice class="mt-4"></div>
+        <div data-policy-note class="mt-4"></div>
 
-          <h3 class="h3 mt-6">بيانات مالك الدومين (Registrant)</h3>
-          <div class="grid grid-2 mt-4">
-            <div class="field"><label for="fname">الاسم بالكامل</label><input class="input" id="fname" autocomplete="name"></div>
-            <div class="field"><label for="country">الدولة</label>
-              <select class="select" id="country"><option>مصر</option><option>السعودية</option><option>الإمارات</option></select>
+        <div class="mt-5 grid" style="grid-template-columns:2fr 1fr;align-items:start">
+          <form class="card" id="pay-form" novalidate>
+            <h3 class="h3">بيانات الحساب</h3>
+            <div class="grid grid-2 mt-4">
+              <div class="field"><label for="email">البريد الإلكتروني</label><input class="input" id="email" type="email" autocomplete="email" placeholder="name@example.com"></div>
+              <div class="field"><label for="phone">رقم الهاتف</label><input class="input" id="phone" type="tel" autocomplete="tel" placeholder="+20 ..."></div>
             </div>
-          </div>
-          <p class="hint mt-2">بيانات المالك لازم تكون صحيحة، لأنها بتُسجّل رسميًا باسمك.</p>
 
-          <h3 class="h3 mt-6">طريقة الدفع</h3>
-          <div class="card card-tight mt-3" style="background:var(--surface-2)">
-            <p class="muted" style="font-size:var(--fs-sm)">بوابة الدفع <strong>غير مُفعّلة</strong> في هذه المرحلة. الاختيار ده شكلي فقط ومش هيتم أي خصم.</p>
-          </div>
-          <div class="mt-3">
-            <label class="row" style="gap:var(--s2)"><input type="radio" name="pay" disabled> بطاقة بنكية</label>
-            <label class="row mt-2" style="gap:var(--s2)"><input type="radio" name="pay" disabled> محفظة إلكترونية</label>
-          </div>
+            <h3 class="h3 mt-6">بيانات مالك الدومين (Registrant)</h3>
+            <div class="grid grid-2 mt-4">
+              <div class="field"><label for="fname">الاسم بالكامل</label><input class="input" id="fname" autocomplete="name"></div>
+              <div class="field"><label for="country">الدولة</label>
+                <select class="select" id="country">
+                  <option value="">اختار الدولة</option>
+                  <option value="EG">مصر</option>
+                  <option value="SA">السعودية</option>
+                  <option value="AE">الإمارات</option>
+                  <option value="KW">الكويت</option>
+                  <option value="QA">قطر</option>
+                </select>
+              </div>
+            </div>
+            <p class="hint mt-2">بيانات المالك لازم تكون صحيحة، لأنها بتُسجّل رسميًا باسمك، والخدمة بترفض بيانات شركات أو موزّعين.</p>
 
-          <label class="row mt-5" style="gap:var(--s2);align-items:flex-start">
-            <input type="checkbox" id="agree">
-            <span class="muted" style="font-size:var(--fs-sm)">أوافق على شروط الخدمة وسياسة الاسترداد، وأقرّ بصحة بيانات المالك.</span>
-          </label>
+            <h3 class="h3 mt-6">الدفع</h3>
+            <div class="card card-tight mt-3" style="background:var(--surface-2)">
+              <p class="muted" style="font-size:var(--fs-sm)">بوابة الدفع <strong>غير مُفعّلة</strong>. الطلب بيتسجل بحالة «بانتظار الدفع» ومفيش أي خصم بيحصل.</p>
+            </div>
 
-          <button class="btn btn-primary mt-5" type="submit" id="payBtn">تأكيد الطلب (تجريبي)</button>
-          <p class="dim mt-3" style="font-size:var(--fs-xs)">الزر ده مش بيعمل دفع حقيقي. لما تُفتح بوابة الدفع، هيتم التحقق من التوفّر مرة أخيرة قبل أي خصم.</p>
-        </form>
+            <label class="row mt-5" style="gap:var(--s2);align-items:flex-start">
+              <input type="checkbox" id="agree">
+              <span class="muted" style="font-size:var(--fs-sm)">أوافق على شروط الخدمة وسياسة الخصوصية وسياسة الاسترداد، وأقرّ بصحة بيانات المالك.</span>
+            </label>
 
-        <aside class="card">
-          <h3 class="h3">ملخص الطلب</h3>
-          <div class="mt-3 row-between"><span class="mono">migo-egypt.com</span><span class="mono">$12.99</span></div>
-          <div class="mt-2 row-between"><span class="mono">migo-egypt.net</span><span class="mono">$13.99</span></div>
-          <div class="mt-2 row-between"><span class="mono">migo-egypt.io</span><span class="mono">$33.99</span></div>
-          <div class="mt-4 row-between" style="border-top:var(--border);padding-top:var(--s3)">
-            <span>الإجمالي</span><span class="mono" style="font-size:var(--fs-h2)">$60.97</span>
-          </div>
-          <p class="dim mt-3" style="font-size:var(--fs-xs)">الأسعار توضيحية. سعر التجديد بيُعرض منفصل قبل أي تجديد.</p>
-        </aside>
+            <button class="btn btn-primary mt-5" type="submit" id="payBtn">تأكيد الطلب</button>
+            <p class="dim mt-3" style="font-size:var(--fs-xs)">التأكيد بيسجّل الطلب على خدمة المنصة، ومش بيعمل أي دفع. التحقق النهائي من التوفّر والسعر بيحصل على السيرفر لحظة التنفيذ.</p>
+          </form>
+
+          <aside class="card">
+            <h3 class="h3">ملخص الطلب</h3>
+            <div data-items></div>
+            <div class="mt-4 row-between" style="border-top:var(--border);padding-top:var(--s3)">
+              <span>إجمالي معروض</span><span class="mono" style="font-size:var(--fs-h2)" data-total>-</span>
+            </div>
+            <p class="dim mt-3" style="font-size:var(--fs-xs)">الإجمالي ده عرض من خدمة المنصة، وبيتثبّت نهائيًا لحظة تنفيذ الطلب. لو فيه بند سعره بالدولار لسه، الإجمالي بالجنيه مش بيظهر.</p>
+          </aside>
+        </div>
+
+        <div data-result></div>
       </div>
     </div>
   </main>
@@ -99,15 +108,11 @@
   </footer>
 
   <div class="scrim" data-dismiss></div>
+  <script src="assets/js/config.js"></script>
   <script src="assets/js/app.js"></script>
-  <script>
-    // نموذج الدفع تجريبي بالكامل: مفيش أي إرسال ولا دفع.
-    document.getElementById("pay-form").addEventListener("submit", function (e) {
-      e.preventDefault();
-      var agree = document.getElementById("agree");
-      if (!agree.checked) { window.migoToast("لازم توافق على الشروط الأول", "warn"); return; }
-      window.migoToast("الطلب جاهز للتأكيد - الدفع الحقيقي غير مُفعّل بعد", "ok");
-    });
-  </script>
+  <script src="assets/js/auth.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/cart-store.js"></script>
+  <script src="assets/js/checkout.js"></script>
 </body>
 </html>
