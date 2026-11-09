@@ -481,3 +481,80 @@ test("getAuthCode: الرمز مش بيتخزّن في التفاصيل ولا �
   assert.ok(listed, "الدومين لازم يظهر في القائمة");
   assert.equal("authCode" in listed, false, "الرمز ممنوع يظهر في قائمة الدومينات");
 });
+
+/* --------------------- تعديل جهات الاتصال · تجهيز النقل الخارج --------------------- */
+
+test("updateContacts: بيعدّل عند المزوّد، بيرجّع رد المزوّد، ويسجّل في التدقيق", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+
+  const out = await service.updateContacts({
+    domain: "shop-migo.com",
+    contacts: { admin: { name: "سارة", email: "sara@example.test" } },
+    claims: USER,
+  });
+  assert.equal(out.ok, true);
+  assert.deepEqual(out.updatedRoles, ["admin"]);
+  assert.equal(out.contacts.admin.email, "sara@example.test");
+
+  const { details } = await service.getDomain({ domain: "shop-migo.com", claims: USER });
+  assert.equal(details.contacts.admin.email, "sara@example.test", "التعديل لازم يظهر في التفاصيل");
+
+  const entry = service.audit.list().filter((a) => a.action === "domain.contacts_updated").pop();
+  assert.ok(entry && entry.actor === "user-1");
+});
+
+test("updateContacts: بيانات الموزّع كمالك رسمي مرفوضة من المزوّد", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+  await assert.rejects(
+    () => service.updateContacts({ domain: "shop-migo.com", contacts: { registrant: { name: "Migo AI", email: "ops@migo.test" } }, claims: USER }),
+    (e) => e.code === C.VALIDATION
+  );
+});
+
+test("updateContacts: طلب فاضي مرفوض، ومفيش دخول من غير جلسة أو من غير ملكية", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+  await assert.rejects(() => service.updateContacts({ domain: "shop-migo.com", contacts: {}, claims: USER }), (e) => e.code === C.VALIDATION);
+  await assert.rejects(() => service.updateContacts({ domain: "shop-migo.com", contacts: { admin: { name: "x", email: "x@y.test" } }, claims: { sub: "user-2" } }), (e) => e.code === C.FORBIDDEN);
+  await assert.rejects(() => service.updateContacts({ domain: "shop-migo.com", contacts: { admin: { name: "x", email: "x@y.test" } } }), (e) => e.code === C.UNAUTHENTICATED);
+});
+
+test("startTransferOut: بيقول BLOCKED مع الأسباب لما الأهلية مش متحققة (من غير أي ادّعاء بدء)", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+  const out = await service.startTransferOut({ domain: "shop-migo.com", claims: USER });
+  assert.equal(out.ok, true);
+  assert.equal(out.status, "BLOCKED");
+  assert.equal(out.eligible, false);
+  assert.ok(out.reasons.length >= 1, "لازم تظهر الأسباب");
+  assert.equal("authCode" in out, false, "ممنوع أي رمز نقل في رد التجهيز");
+
+  const entry = service.audit.list().filter((a) => a.action === "domain.transfer_out_blocked").pop();
+  assert.ok(entry && entry.actor === "user-1");
+});
+
+test("startTransferOut: لما الأهلية متحققة = READY_TO_TRANSFER ومسجّل في التدقيق", async () => {
+  const { service, payments, provider } = build();
+  await ownedDomain(service, payments);
+  // نقدّم تاريخ التسجيل عند المزوّد عشان تتحقق أهلية النقل (60 يوم).
+  provider.seedDomain("shop-migo.com", { registeredAt: new Date("2025-01-01T00:00:00.000Z").toISOString(), years: 5 });
+
+  const out = await service.startTransferOut({ domain: "shop-migo.com", claims: USER });
+  assert.equal(out.ok, true);
+  assert.equal(out.status, "READY_TO_TRANSFER");
+  assert.equal(out.eligible, true);
+  assert.equal(out.authCodeRequired, true);
+  assert.equal("authCode" in out, false, "ممنوع أي رمز نقل في رد التجهيز");
+
+  const entry = service.audit.list().filter((a) => a.action === "domain.transfer_out_prepared").pop();
+  assert.ok(entry && entry.actor === "user-1");
+});
+
+test("startTransferOut: ممنوع من غير جلسة أو من غير ملكية", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+  await assert.rejects(() => service.startTransferOut({ domain: "shop-migo.com", claims: { sub: "user-2" } }), (e) => e.code === C.FORBIDDEN);
+  await assert.rejects(() => service.startTransferOut({ domain: "shop-migo.com" }), (e) => e.code === C.UNAUTHENTICATED);
+});
