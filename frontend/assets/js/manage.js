@@ -1,10 +1,13 @@
 /* ==========================================================================
    Migo Domains - إدارة الدومين (صفحة manage.html)
    --------------------------------------------------------------------------
-   بيانات تجريبية فقط. مفيش أي اتصال بمزوّد، ومفيش أي اتصال خارجي، ومفيش أي
-   مفاتيح. والقواعد هنا **مرآة** لقواعد المزوّد الحقيقية في providers/lib/mock.js
-   (نفس تحقق الـNameservers ونفس IPv4 ونفس حدود TTL ونفس قاعدة الملكية)، عشان
-   الواجهة ترفض اللي المزوّد هيرفضه، مش العكس.
+   بيانات العرض تجريبية، **ماعدا حفظ الـNameservers**: ده بيتنادى على خدمة
+   المنصة (`POST /dns`) والخدمة هي المرجع — لو رفضت، الصفحة بتقول كده ومش
+   بتحفظ حاجة محليًا. مفيش أي مفاتيح.
+
+   الفحص المحلي للـNameservers والـDNS **مرآة** لقواعد المزوّد
+   (`providers/lib/mock.js`)، ووظيفته رد سريع للمستخدم بس — القرار النهائي
+   عند الخدمة/المزوّد دايمًا.
    ========================================================================== */
 (function () {
   "use strict";
@@ -55,6 +58,7 @@
 
   /* نفس تحقق المزوّد: اسم خادم صحيح */
   var HOSTNAME = /^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/;
+  var DEFAULT_NS = ["ns1.migo-dns.test", "ns2.migo-dns.test"];
   /* نفس تحقق المزوّد: IPv4 بمدى 0-255 وبدون أصفار بادئة */
   function isIPv4(v) {
     var p = String(v).split(".");
@@ -87,40 +91,81 @@
       " من 6 كحد أقصى.</p>";
   }
 
+  /** الخدمة مربوطة وفيه جلسة؟ وإلا سبب واضح للمستخدم. */
+  function nsService() {
+    if (!window.migoApi || !window.migoApi.isConfigured()) {
+      return { ok: false, message: "خدمة المنصة مش مربوطة، فالتغيير مااتبعتش ومش محفوظ." };
+    }
+    var A = window.MigoAuth;
+    if (!A || typeof A.isSignedIn !== "function" || !A.isSignedIn()) {
+      return { ok: false, message: "سجّل دخولك الأول عشان التغيير يتبعت للخدمة." };
+    }
+    return { ok: true, api: window.migoApi };
+  }
+
+  function setNsHint(text, isError) {
+    var hint = $("#nsHint");
+    if (!hint) return;
+    hint.className = isError ? "hint error" : "hint";
+    hint.textContent = text;
+  }
+
+  /* فحص سريع بنفس قواعد المزوّد — القرار النهائي عند الخدمة. */
+  function localNsProblem(lines) {
+    if (lines.length < 2 || lines.length > 6) return "عدد الـNameservers لازم يكون من 2 لـ6، والعدد الحالي " + lines.length + ".";
+    var bad = lines.filter(function (n) { return !HOSTNAME.test(n); });
+    if (bad.length) return "اسم خادم غير صحيح: " + bad.join(" · ");
+    return null;
+  }
+
+  /** بيعرض في الجدول الخوادم اللي **الخدمة** أكّدتها. */
+  function applyNs(applied) {
+    STATE.nameservers = applied.slice();
+    STATE.records = STATE.records.filter(function (r) { return !r.authority; });
+    STATE.records.unshift(
+      { type: "NS", name: "@", value: applied[0], ttl: 3600, authority: true },
+      { type: "NS", name: "@", value: applied[1], ttl: 3600, authority: true }
+    );
+    renderNs();
+    renderDns();
+  }
+
+  function submitNameservers(lines) {
+    var problem = localNsProblem(lines);
+    if (problem) { setNsHint(problem, true); return; }
+
+    var svc = nsService();
+    if (!svc.ok) { setNsHint(svc.message, true); return; }
+
+    var btn = $("#nsSubmit");
+    if (btn) btn.disabled = true;
+    setNsHint("جاري الإرسال للخدمة...", false);
+
+    svc.api.setNameservers(STATE.name, lines).then(function (res) {
+      if (btn) btn.disabled = false;
+      var applied = res && res.nameservers && res.nameservers.length ? res.nameservers.slice() : lines.slice();
+      applyNs(applied);
+      setNsHint("الخدمة أكّدت التحديث.", false);
+      toast("تم تحديث الـNameservers على الخدمة", "ok");
+    }).catch(function (err) {
+      if (btn) btn.disabled = false;
+      var msg = (err && err.message) || "خطأ غير متوقع";
+      setNsHint("الخدمة رفضت التغيير: " + msg + (err && err.code ? " (" + err.code + ")" : ""), true);
+      toast("الخدمة رفضت التغيير: مفيش حاجة اتحفظت", "danger");
+    });
+  }
+
   $("#nsForm").addEventListener("submit", function (e) {
     e.preventDefault();
     var lines = $("#nsInput").value.split("\n").map(function (s) { return s.trim().toLowerCase(); })
       .filter(function (s) { return s !== ""; });
-    var hint = $("#nsHint");
-    if (lines.length < 2 || lines.length > 6) {
-      hint.className = "hint error";
-      hint.textContent = "عدد الـNameservers لازم يكون من 2 لـ6، والعدد الحالي " + lines.length + ".";
-      return;
-    }
-    var bad = lines.filter(function (n) { return !HOSTNAME.test(n); });
-    if (bad.length) {
-      hint.className = "hint error";
-      hint.textContent = "اسم خادم غير صحيح: " + bad.join(" · ");
-      return;
-    }
-    hint.className = "hint";
-    hint.textContent = "الشكل صحيح (2 لـ6 خوادم).";
-    STATE.nameservers = lines;
-    STATE.records = STATE.records.filter(function (r) { return !r.authority; });
-    STATE.records.unshift(
-      { type: "NS", name: "@", value: lines[0], ttl: 3600, authority: true },
-      { type: "NS", name: "@", value: lines[1], ttl: 3600, authority: true }
-    );
-    renderNs();
-    renderDns();
-    toast("تم تحديث الـNameservers (تجريبي، ومش محفوظ)", "ok");
+    submitNameservers(lines);
   });
 
   $("#nsReset").addEventListener("click", function () {
-    STATE.nameservers = ["ns1.migo-dns.test", "ns2.migo-dns.test"];
-    renderNs();
-    renderDns();
-    toast("رجعنا للـNameservers الافتراضية", "");
+    var input = $("#nsInput");
+    if (input) input.value = DEFAULT_NS.join("\n");
+    submitNameservers(DEFAULT_NS.slice());
   });
 
   /* ------------------------------------------------------------------ تبويب: DNS */
