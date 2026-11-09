@@ -1,0 +1,157 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { createApp, SECURITY_HEADERS, claimsFrom } from "../src/app.js";
+import { matchRoute, ROUTES } from "../src/router.js";
+import { buildApp } from "../src/index.js";
+import { createBackendService, createPaymentGateway } from "../../backend/lib/index.js";
+import { createMockProvider } from "../../providers/lib/mock.js";
+
+const NOW = () => new Date("2026-11-09T10:00:00.000Z");
+const USER = { sub: "user-1", role: "customer" };
+const REGISTRANT = { name: "أحمد المصري", email: "ahmed@example.com", country: "EG" };
+
+function makeApp() {
+  const provider = createMockProvider({ seed: 7 });
+  const payments = createPaymentGateway({ secret: "test-secret-123", now: NOW });
+  const service = createBackendService({ provider, payments, now: NOW });
+  return { app: createApp({ service, config: { allowedOrigins: ["https://migo.example"], trustDevClaims: true } }), provider, payments, service };
+}
+
+function req(method, path, { body, headers } = {}) {
+  return new Request("https://api.migo.example" + path, {
+    method,
+    headers: { "content-type": "application/json", ...(headers || {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
+async function jsonOf(res) {
+  return JSON.parse(await res.text());
+}
+
+/* ------------------------------ المسارات ------------------------------ */
+
+test("matchRoute يطابق المسارات الثابتة والمعاملات", () => {
+  assert.equal(matchRoute("GET", "/health").route.id, "health");
+  assert.equal(matchRoute("GET", "/order/ord_1").params.orderId, "ord_1");
+  assert.equal(matchRoute("POST", "/order").route.id, "order.create");
+  assert.equal(matchRoute("GET", "/nope"), null);
+  assert.equal(matchRoute("POST", "/health"), null, "الطريقة لازم تطابق");
+});
+
+test("المسارات كلها ليها إعداد صلاحية صريح", () => {
+  for (const r of ROUTES) assert.ok(["none", "user", "admin", "signature"].includes(r.auth), r.path);
+});
+
+/* ------------------------------- الردود ------------------------------- */
+
+test("health بيرجّع ok", async () => {
+  const { app } = makeApp();
+  const res = await app.handle(req("GET", "/health"));
+  assert.equal(res.status, 200);
+  assert.equal((await jsonOf(res)).ok, true);
+});
+
+test("كل رد فيه هيدرز الأمان", async () => {
+  const { app } = makeApp();
+  const res = await app.handle(req("GET", "/health"));
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) assert.equal(res.headers.get(k), v);
+});
+
+test("مسار غير معروف = 404 بريد موحّد", async () => {
+  const { app } = makeApp();
+  const res = await app.handle(req("GET", "/nothing"));
+  assert.equal(res.status, 404);
+  assert.equal((await jsonOf(res)).error.code, "NOT_FOUND");
+});
+
+test("CORS: الأصل المسموح بياخد هيدر، وغير المسموح لأ", async () => {
+  const { app } = makeApp();
+  const ok = await app.handle(req("GET", "/health", { headers: { origin: "https://migo.example" } }));
+  assert.equal(ok.headers.get("access-control-allow-origin"), "https://migo.example");
+  const no = await app.handle(req("GET", "/health", { headers: { origin: "https://evil.example" } }));
+  assert.equal(no.headers.get("access-control-allow-origin"), null);
+});
+
+test("OPTIONS = 204 بدون جسم", async () => {
+  const { app } = makeApp();
+  const res = await app.handle(req("OPTIONS", "/order"));
+  assert.equal(res.status, 204);
+});
+
+/* ------------------------------ الصلاحيات ------------------------------ */
+
+test("المسار المحمي بدون دخول = 401", async () => {
+  const { app } = makeApp();
+  const res = await app.handle(req("GET", "/orders"));
+  assert.equal(res.status, 401);
+  assert.equal((await jsonOf(res)).error.code, "UNAUTHENTICATED");
+});
+
+test("المسار المحمي مع مطالبات = 200", async () => {
+  const { app } = makeApp();
+  const res = await app.handle(req("GET", "/orders", { headers: { "x-migo-claims": JSON.stringify(USER) } }));
+  assert.equal(res.status, 200);
+});
+
+test("claimsFrom مايثقش في x-migo-claims من غير وضع التطوير", () => {
+  const r = req("GET", "/orders", { headers: { "x-migo-claims": JSON.stringify(USER) } });
+  assert.equal(claimsFrom(r, { trustDevClaims: false }), null);
+  assert.deepEqual(claimsFrom(r, { trustDevClaims: true }), USER);
+});
+
+/* --------------------------- تكامل الفلو ---------------------------- */
+
+test("الفلط الكامل عبر الـAPI: بحث → طلب → دفع → تسجيل", async () => {
+  const { app, payments } = makeApp();
+  const auth = { "x-migo-claims": JSON.stringify(USER) };
+
+  const search = await app.handle(req("POST", "/search", { body: { names: ["shop"], tlds: ["com"] }, headers: auth }));
+  assert.equal(search.status, 200);
+  assert.equal((await jsonOf(search)).results.length, 1);
+
+  const created = await app.handle(req("POST", "/order", { body: { domain: "api-test.com", registrant: REGISTRANT, allowMock: true }, headers: { ...auth, "x-idempotency-key": "api-1" } }));
+  assert.equal(created.status, 201);
+  const order = (await jsonOf(created)).order;
+  assert.equal(order.status, "AWAITING_PAYMENT");
+
+  const intentRes = await app.handle(req("POST", "/payment/intent", { body: { orderId: order.orderId }, headers: auth }));
+  assert.equal(intentRes.status, 201);
+  const intent = (await jsonOf(intentRes)).intent;
+
+  const event = { type: "payment.succeeded", orderId: order.orderId, intentId: intent.intentId, amount: intent.amount, currency: intent.currency, occurredAt: NOW().toISOString() };
+  const raw = JSON.stringify(event);
+  const signature = await payments.sign(raw);
+  const hook = await app.handle(new Request("https://api.migo.example/payment/webhook", { method: "POST", headers: { "content-type": "application/json", "x-migo-signature": signature }, body: raw }));
+  assert.equal(hook.status, 200);
+  assert.equal((await jsonOf(hook)).order.status, "PAID");
+
+  const done = await app.handle(req("GET", "/order/" + order.orderId, { headers: auth }));
+  assert.equal((await jsonOf(done)).order.status, "PAID");
+});
+
+test("الـwebhook بتوقيع غلط = 400", async () => {
+  const { app } = makeApp();
+  const res = await app.handle(new Request("https://api.migo.example/payment/webhook", { method: "POST", body: "{}", headers: { "x-migo-signature": "bad", "content-type": "application/json" } }));
+  assert.equal(res.status, 400);
+  assert.equal((await jsonOf(res)).error.code, "PAYMENT_INVALID");
+});
+
+test("body مش JSON = 400 VALIDATION مش 500", async () => {
+  const { app } = makeApp();
+  const res = await app.handle(new Request("https://api.migo.example/quote", { method: "POST", body: "not-json", headers: { "content-type": "application/json" } }));
+  assert.equal(res.status, 400);
+  assert.equal((await jsonOf(res)).error.code, "VALIDATION");
+});
+
+/* --------------------------- ربط البيئة ----------------------------- */
+
+test("buildApp من بيئة افتراضية يشتغل بالمزوّد الوهمي", async () => {
+  const app = buildApp({ MIGO_ALLOWED_ORIGINS: "https://migo.example" });
+  const res = await app.handle(req("GET", "/health"));
+  assert.equal(res.status, 200);
+});
+
+test("طلب المزوّد الحقيقي بدون ربط = خطأ واضح", () => {
+  assert.throws(() => buildApp({ MIGO_REGISTRAR: "openprovider" }), /مش مربوط/);
+});
