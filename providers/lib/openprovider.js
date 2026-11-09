@@ -497,6 +497,35 @@ export function createOpenproviderAdapter(options = {}) {
     return { name: input.name || null, locked: Boolean(locked), source };
   }
 
+  /* ------------------------------ جهات الاتصال ------------------------------ */
+  /**
+   * تعديل جهات الاتصال. Openprovider بياخد **handle** لكل جهة، مش بيانات
+   * مباشرة — فلو الخدمة بعتت اسم/بريد من غير handle، الدالة بترفض بـ
+   * REGISTRANT_REQUIRED (وده سلوك صحيح، مش خطأ). `role` -> حقل Openprovider.
+   */
+  const CONTACT_HANDLE_FIELDS = Object.freeze({
+    registrant: "owner_handle",
+    admin: "admin_handle",
+    tech: "tech_handle",
+    billing: "billing_handle",
+  });
+  async function updateContacts(input = {}) {
+    const id = requireId(input);
+    const contacts = input.contacts || {};
+    const provided = Object.keys(CONTACT_HANDLE_FIELDS).filter(
+      (role) => contacts[role] !== undefined && contacts[role] !== null
+    );
+    if (provided.length === 0) {
+      throw new ProviderError("مفيش أي جهة اتصال في الطلب", PROVIDER_ERROR_CODES.CONTACT_INVALID);
+    }
+    const body = { id };
+    for (const role of provided) body[CONTACT_HANDLE_FIELDS[role]] = resolveHandle(contacts[role]);
+    await rawCall("PUT", "/domains/" + id, { body });
+    const out = { name: input.name || null, updatedRoles: provided.slice(), source };
+    for (const role of provided) out[role] = contacts[role];
+    return out;
+  }
+
   /* ------------------------------ 8 الأسماء (Nameservers) ------------------------------ */
   async function updateNameservers(input = {}) {
     const id = requireId(input);
@@ -646,6 +675,7 @@ export function createOpenproviderAdapter(options = {}) {
     checkTransferEligibility,
     getAuthCode,
     setLock,
+    updateContacts,
     /* أدوات للتشغيل والاختبار */
     login,
     _rawCall: rawCall,
