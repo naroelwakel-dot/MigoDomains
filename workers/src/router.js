@@ -23,11 +23,6 @@ export const ROUTES = Object.freeze([
   { id: "dns.set", method: "POST", path: "/dns", auth: "user" },
   { id: "dns.records.get", method: "GET", path: "/dns/records", auth: "user" },
   { id: "dns.records.set", method: "POST", path: "/dns/records", auth: "user" },
-  { id: "domain.get", method: "GET", path: "/domain/:name", auth: "user" },
-  { id: "domain.lock", method: "POST", path: "/domain/:name/lock", auth: "user" },
-  { id: "domain.dnssec", method: "POST", path: "/domain/:name/dnssec", auth: "user" },
-  { id: "domain.transferEligibility", method: "GET", path: "/domain/:name/transfer-eligibility", auth: "user" },
-  { id: "domain.authCode", method: "GET", path: "/domain/:name/auth-code", auth: "user" },
   { id: "admin.pricePreview", method: "POST", path: "/admin/price-preview", auth: "admin" },
 ]);
 
