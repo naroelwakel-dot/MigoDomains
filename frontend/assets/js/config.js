@@ -10,8 +10,17 @@
    - **ممنوع منعاً تاماً** وضع `service_role` أو أي `secret` key في الملف ده،
      لأنه بيتنشر مع الموقع.
    - طول ما القيم فاضية، صفحات الدخول بتشتغل في وضع "غير مُهيّأة".
+
+   `MIGO_API.baseUrl` هو عنوان خدمة المنصة (Cloudflare Worker). مثال:
+     baseUrl: "https://migo-domains-api.<account>.workers.dev"
+   وطوله ما هو فاضي، صفحات البحث والسلة بتقول «الخدمة مش مربوطة بعد»
+   بدل ما تعرض أي سعر أو بيانات وهمية.
    ========================================================================== */
 window.MIGO_AUTH = {
   url: "",      // مثال: https://<ref>.supabase.co
   anonKey: ""   // المفتاح العام (anon / publishable) فقط
+};
+
+window.MIGO_API = {
+  baseUrl: ""   // عنوان خدمة المنصة، مثال: https://migo-domains-api.<account>.workers.dev
 };
