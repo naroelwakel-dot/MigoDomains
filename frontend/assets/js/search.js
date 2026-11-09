@@ -1,7 +1,12 @@
 /* ==========================================================================
-   Migo Domains - منطق البحث عن الدومين (صفحة search.html)
-   ملاحظة مهمة: التحقق من التوفّر هنا MOCK بالكامل للتجربة بدون أي اتصال.
-   لما يجهز الباك إند، تُستبدل دالة checkAvailability بنداء الـ RDAP/Registrar API.
+   Migo Domains - منطق البحث (صفحة search.html)
+   --------------------------------------------------------------------------
+   كل حاجة هنا جاية من خدمة المنصة:
+     • حالة التوفّر من `/search`  -> محرك RDAP في الباك إند
+     • السعر من `/quote`          -> محرك التسعير في الباك إند
+
+   **مفيش أي سعر مكتوب في الملف ده**، ومفيش أي حالة توفّر مصطنعة.
+   لو الخدمة مش مربوطة، بنقول كده صراحةً بدل ما نعرض بيانات وهمية.
    ========================================================================== */
 (function () {
   "use strict";
@@ -10,99 +15,116 @@
   var out = $("#sres");
   if (!out) return;
 
-  /* --- بيانات تجريبية: الأسعار والامتدادات --- */
-  var TLDS = [
-    { t: "com", price: "12.99", reg: "12.99", renew: "14.99", transfer: "12.49" },
-    { t: "net", price: "13.99", reg: "13.99", renew: "15.99", transfer: "13.49" },
-    { t: "org", price: "11.99", reg: "11.99", renew: "13.99", transfer: "12.29" },
-    { t: "io", price: "34.99", reg: "34.99", renew: "39.99", transfer: "33.99" },
-    { t: "dev", price: "14.99", reg: "14.99", renew: "16.99", transfer: "14.49" },
-    { t: "ai", price: "49.99", reg: "49.99", renew: "59.99", transfer: "48.99" }
-  ];
+  /* الامتدادات المعروضة افتراضيًا. القائمة الحقيقية بتيجي من `/search`. */
+  var DEFAULT_TLDS = ["com", "net", "org", "io", "dev", "app", "store"];
 
-  /* --- MOCK: توفّر الدومين. لا يلمس أي خدمة حقيقية. --- */
-  function checkAvailability(name) {
-    // أمثلة ثابتة للحالات، وأي اسم تاني بياخد حالة "متاح" افتراضيًا.
-    if (/^taken/.test(name)) return { status: "taken" };
-    if (/^error/.test(name)) return { status: "error" };
-    return { status: "available" };
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c];
+    });
   }
 
-  var ALT = ["migo-egypt", "migodomains", "migostore-eg", "get-migo"];
-
-  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); }
+  function renderNotConfigured() {
+    out.innerHTML =
+      '<div class="card"><h2 class="h2">خدمة المنصة مش مربوطة بعد</h2>' +
+      '<p class="lead mt-2">صفحة البحث بقت بتعتمد على خدمة المنصة الحقيقية للتحقق من التوفّر وجلب السعر. ' +
+      "وطول ما `window.MIGO_API.baseUrl` في <span class=\"mono\">config.js</span> فاضي، مفيش حاجة نعرضها.</p>" +
+      '<p class="muted mt-3" style="font-size:var(--fs-sm)">مش بنعرض أسعار أو نتائج تجريبية عشان محدش ياخد قرار على بيانات مش حقيقية.</p></div>';
+  }
 
   function renderLoading(q) {
     out.innerHTML =
       '<div class="card"><div class="row"><div class="skeleton" style="width:180px;height:22px"></div>' +
-      '<span class="muted">جاري البحث عن </span><span class="mono">' + esc(q) + '</span></div>' +
+      '<span class="muted">جاري فحص </span><span class="mono">' + esc(q) + "</span></div>" +
       '<div class="mt-4 grid grid-3">' +
       [0, 1, 2].map(function () { return '<div class="skeleton" style="height:120px"></div>'; }).join("") +
       "</div></div>";
   }
 
-  function priceCard(t) {
-    return '<div class="card card-tight"><div class="row-between"><strong class="mono">.' + t.t + "</strong>" +
-      '<span class="pill ok">متاح</span></div>' +
-      '<div class="mt-2 muted" style="font-size:var(--fs-sm)">تسجيل</div>' +
-      '<div class="mono" style="font-size:var(--fs-h2)">$' + t.reg + "</div>" +
-      '<div class="mt-2 dim" style="font-size:var(--fs-xs)">تجديد $' + t.renew + " · نقل $" + t.transfer + "</div>" +
-      '<div class="mt-4 row"><button class="btn btn-primary btn-sm" data-toast="إضافة .' + t.t + ' للسلة (تجريبي)">أضف للسلة</button>' +
-      '<button class="btn btn-sm" data-toast="صفحة تفاصيل الدومين (تجريبي)">التفاصيل</button></div></div>';
-  }
-
-  function renderAvailable(q) {
-    out.innerHTML =
-      '<div class="card"><div class="row-between wrap-flex">' +
-      '<h2 class="h2"><span class="mono">' + esc(q) + '</span> <span class="pill ok">متاح</span></h2>' +
-      '<span class="dim" style="font-size:var(--fs-xs)">الأسعار توضيحية</span></div>' +
-      '<p class="lead mt-2">اختار الامتداد، والسعر بيتحدّث حسب سياسة التسعير المعتمدة.</p>' +
-      '<div class="mt-5 grid grid-3">' + TLDS.map(priceCard).join("") + "</div></div>" +
-      '<div class="card mt-4"><strong>اللي مش بيظهر للعميل</strong>' +
-      '<p class="muted mt-2" style="font-size:var(--fs-sm)">تكلفة المزوّد والهامش وقواعد التسعير الداخلية بتظهر بس في لوحة الإدارة، مش في واجهة العميل.</p></div>';
-  }
-
-  function renderTaken(q) {
-    out.innerHTML =
-      '<div class="card"><h2 class="h2"><span class="mono">' + esc(q) + '</span> <span class="pill danger">محجوز</span></h2>' +
-      '<p class="lead mt-2">الاسم ده مش متاح للتسجيل حاليًا. جرّب امتداد تاني أو اقتراح من اللي تحت.</p>' +
-      '<h3 class="h3 mt-5">اقتراحات بديلة</h3>' +
-      '<div class="mt-3 row wrap-flex">' + ALT.map(function (a) {
-        return '<button class="btn btn-sm" data-toast="فحص ' + a + " (تجريبي)\">" + "<span class=\"mono\">" + a + ".com</span></button>";
-      }).join("") + "</div></div>";
-  }
-
-  function renderError(q) {
+  function renderFailure(message, q) {
     out.innerHTML =
       '<div class="card"><h2 class="h2">تعذّر إتمام البحث</h2>' +
-      '<p class="lead mt-2">حصلت مشكلة مؤقتة في الاتصال بخدمة التوفّر. حاول تاني بعد لحظات.</p>' +
-      '<div class="mt-4 row"><button class="btn btn-primary" id="retry">إعادة المحاولة</button>' +
-      '<span class="dim" style="font-size:var(--fs-xs)">لو المشكلة استمرت، جرّب امتداد تاني أو تواصل مع الدعم.</span></div>' +
+      '<p class="lead mt-2">' + esc(message || "حصلت مشكلة مؤقتة.") + "</p>" +
+      '<div class="mt-4"><button class="btn btn-primary" id="retry">إعادة المحاولة</button></div>' +
       '<p class="dim mt-4" style="font-size:var(--fs-xs)">' + esc(q) + "</p></div>";
     var r = $("#retry");
     if (r) r.addEventListener("click", function () { run(q); });
   }
 
-  function renderAlt() {
-    out.innerHTML =
-      '<div class="card"><h2 class="h2">جرّب <span class="mono">.com</span> أو امتداد تاني</h2>' +
-      '<p class="lead mt-2">الامتداد اللي اختارته مش مدعوم حاليًا، والاقتراحات دي متاحة:</p>' +
-      '<div class="mt-4 grid grid-3">' + TLDS.slice(0, 3).map(priceCard).join("") + "</div></div>";
+  function resultCard(res, price) {
+    var lab = window.migoApi.stateLabel(res.state);
+    var available = res.state === "AVAILABLE_CONFIRMED";
+    var priceHtml;
+    if (!available) {
+      priceHtml = '<div class="mt-3 dim" style="font-size:var(--fs-xs)">' + esc(lab.label) + "</div>";
+    } else if (price && price.ok !== false) {
+      var p = window.migoApi.priceSummary(price.quote);
+      priceHtml = p
+        ? '<div class="mono mt-2" style="font-size:var(--fs-h2)">' + esc(p.text) + "</div>"
+        : '<div class="mt-2 dim" style="font-size:var(--fs-xs)">السعر بالدولار قيد التحديد</div>';
+    } else {
+      var why = (price && price.message) || "السعر مش متاح دلوقتي.";
+      priceHtml = '<div class="mt-2 dim" style="font-size:var(--fs-xs);color:var(--warn)">' + esc(why) + "</div>";
+    }
+    var actions = available
+      ? '<div class="mt-4 row"><button class="btn btn-primary btn-sm" data-add="' + esc(res.name) + '">أضف للسلة</button></div>'
+      : "";
+
+    return '<div class="card card-tight"><div class="row-between"><strong class="mono">.' + esc(res.tld || "") + "</strong>" +
+      '<span class="pill ' + lab.tone + '">' + esc(lab.label) + "</span></div>" +
+      '<div class="mt-2 mono" style="font-size:var(--fs-sm)">' + esc(res.name) + "</div>" +
+      priceHtml + actions + "</div>";
   }
 
   function run(q) {
-    var name = (q || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\s+/g, "-");
+    var name = (q || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/\s+/g, "-");
     if (!name) name = "migo";
-    renderLoading(name);
-    setTimeout(function () {
-      var res = checkAvailability(name);
-      if (res.status === "taken") renderTaken(name);
-      else if (res.status === "error") renderError(name);
-      else renderAvailable(name);
-    }, 450);
+    if (!window.migoApi || !window.migoApi.isConfigured()) { renderNotConfigured(); return; }
+
+    var parts = name.split(".").filter(Boolean);
+    var baseName = parts[0];
+    var typedTld = parts.length > 1 ? parts.slice(1).join(".") : null;
+    var tlds = typedTld ? [typedTld] : DEFAULT_TLDS;
+
+    renderLoading(baseName);
+    out.setAttribute("aria-busy", "true");
+
+    window.migoApi.search([baseName], tlds)
+      .then(function (results) {
+        if (!results.length) throw new Error("مفيش نتائج.");
+        return Promise.all(results.map(function (res) {
+          if (res.state !== "AVAILABLE_CONFIRMED") return { res: res, price: null };
+          return window.migoApi.quote(res.name, "registration")
+            .then(function (price) { return { res: res, price: price }; })
+            .catch(function (e) { return { res: res, price: { ok: false, message: e.message, code: e.code } }; });
+        }));
+      })
+      .then(function (pairs) {
+        out.setAttribute("aria-busy", "false");
+        var anyAvailable = pairs.some(function (p) { return p.res.state === "AVAILABLE_CONFIRMED"; });
+        var head = '<div class="card"><div class="row-between wrap-flex">' +
+          '<h2 class="h2"><span class="mono">' + esc(baseName) + '</span> ' +
+          (anyAvailable ? '<span class="pill ok">فيه امتدادات متاحة</span>' : '<span class="pill danger">مش متاح</span>') + "</h2>" +
+          '<span class="dim" style="font-size:var(--fs-xs)">آخر فحص: ' + esc(pairs[0].res.checkedAt || "") + "</span></div>" +
+          '<div class="mt-5 grid grid-3">' + pairs.map(function (p) { return resultCard(p.res, p.price); }).join("") + "</div>" +
+          '<p class="dim mt-4" style="font-size:var(--fs-xs)">«متاح» هنا معناها إن RDAP مالاقاش سجل. التسجيل الفعلي بيتأكد عند المزوّد لحظة التنفيذ.</p></div>';
+        out.innerHTML = head;
+      })
+      .catch(function (e) {
+        out.setAttribute("aria-busy", "false");
+        renderFailure(e && e.message, name);
+      });
   }
 
-  /* --- ربط الفورم --- */
+  /* إضافة للسلة (اختيار بس، من غير أي سعر) */
+  out.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-add]");
+    if (!b) return;
+    var domain = b.getAttribute("data-add");
+    window.migoCart.add({ domain: domain, operation: "registration", years: 1 });
+    if (window.migoToast) window.migoToast("تمت إضافة " + domain + " للسلة");
+  });
+
   var form = $("#search-form");
   var input = $("#q");
   if (form) {
@@ -115,6 +137,5 @@
   }
   var params = new URLSearchParams(location.search);
   var q0 = params.get("q");
-  if (q0 !== null && q0 !== "") { if (input) input.value = q0; run(q0); }
-  else if (params.get("demo") === "alt") renderAlt();
+  if (q0 !== null && q0 !== "") { if (input) input.value = q0; run(q0); } else run("migo");
 })();
