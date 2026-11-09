@@ -174,6 +174,11 @@
       return request("GET", "/domain/" + encodeURIComponent(domain) + "/transfer-eligibility");
     },
 
+    /* رمز النقل سرّي: بيطلب من الخدمة عند لحظة العرض بس، ومش بيتخزّن في الصفحة. */
+    getAuthCode: function (domain) {
+      return request("GET", "/domain/" + encodeURIComponent(domain) + "/auth-code");
+    },
+
     /* معاينة تسعير للإدارة: الهامش وسعر البيع بيتحسبوا على الخدمة بمحرك
        التسعير الرسمي. ممنوع أي حساب في المتصفح. المسار للإدارة بس. */
     pricePreview: function (costUsd, fxRate) {
