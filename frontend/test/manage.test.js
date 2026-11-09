@@ -40,10 +40,21 @@ function routes(opts = {}) {
       if (url.indexOf("/transfer-eligibility") !== -1) {
         return jsonResponse(200, { ok: true, eligible: opts.eligible === true, reasons: opts.eligible ? [] : [{ code: "TRANSFER_LOCKED", message: "قفل النقل مفعّل (clientTransferProhibited)" }], status: "ACTIVE" });
       }
+      if (url.indexOf("/auth-code") !== -1) {
+        if (opts.rejectAuthCode) return jsonResponse(409, { ok: false, error: { code: "PROVIDER_ERROR", message: "المزوّد رفض استخراج الرمز" } });
+        if (opts.noAuthCode) return jsonResponse(200, { ok: true, domain: "migo-egypt.com", authCode: null, sensitive: true });
+        return jsonResponse(200, { ok: true, domain: "migo-egypt.com", authCode: "A7F3K9Q2M4X8P1Z6", sensitive: true, warning: "سرّي: ممنوع يتشارك في مكان عام أو سجل غير محمي" });
+      }
       return jsonResponse(200, { ok: true, domain: "migo-egypt.com", details: opts.details || {
         domain: "migo-egypt.com", status: "ACTIVE", registeredAt: "2025-11-12", expiresAt: "2028-01-05",
         nameservers: ["ns1.migo-dns.test", "ns2.migo-dns.test"], transferLock: false, locks: [], dnssec: false,
-        registrant: { name: "أحمد العميل", email: "owner@example.test", country: "EG" }
+        registrant: { name: "أحمد العميل", email: "owner@example.test", country: "EG" },
+        contacts: {
+          registrant: { name: "أحمد العميل", email: "owner@example.test", country: "EG" },
+          admin: { name: "أحمد العميل", email: "admin@example.test", country: "EG" },
+          tech: { name: "فريق Migo", email: "tech@migo.test", country: "EG" },
+          billing: { name: "حسابات Migo", email: "billing@migo.test", country: "EG" }
+        }
       } });
     }
     if (url.endsWith("/dns")) {
@@ -85,7 +96,8 @@ test("manage.html: بيحمّل config و auth و api قبل manage.js", () => {
   assert.ok(i("config.js") > -1 && i("api.js") > -1 && i("auth.js") > -1, "ملفات الربط ناقصة");
   assert.ok(i("config.js") < i("api.js"), "config.js لازم يجي قبل api.js");
   assert.ok(i("api.js") < i("manage.js"), "api.js لازم يجي قبل manage.js");
-  assert.match(html, /الـNameservers وسجلات DNS وقفل النقل وDNSSEC إجراءات متوصلة بالخدمة/);
+  assert.match(html, /الـNameservers وسجلات DNS وقفل النقل وDNSSEC وتفاصيل الدومين وجهات الاتصال ورمز النقل وأهلية النقل كلها بتيجي من الخدمة/);
+  assert.match(html, /اللي لسه عرض تجريبي: تعديل بيانات الاتصال وبدء النقل والتجديد/);
 });
 
 test("manage.html: مفيش أسعار ثابتة في الصفحة", () => {
@@ -358,6 +370,61 @@ test("أهلية متحققة عند الخدمة = الزرار مفتوح", as
   assert.match(ctx.__node("#eligResult").innerHTML, /مؤهّل للنقل/);
 });
 
+/* --------------------------- جهات الاتصال ورمز النقل --------------------------- */
+
+test("جهات الاتصال بتتجاب من الخدمة وتظهر في التبويب", async () => {
+  const ctx = await openDns();
+  const call = ctx.__seen.filter((c) => /\/domain\/[^/]+$/.test(c.url)).pop();
+  assert.ok(call, "الصفحة مجابتش تفاصيل الدومين من الخدمة");
+  const grid = ctx.__node("#contactsGrid").innerHTML;
+  assert.match(grid, /admin@example\.test/);
+  assert.match(grid, /tech@migo\.test/);
+  assert.match(grid, /حسابات Migo/);
+  assert.equal(/>ahmed@example\.test</.test(grid), false, "فضلت بيانات تجريبية مع إن الخدمة رجّعت بياناتها");
+});
+
+test("من غير خدمة: جهات الاتصال بترجع للعرض التجريبي", async () => {
+  const ctx = await openDns({ api: { baseUrl: "" } });
+  assert.match(ctx.__node("#contactsGrid").innerHTML, /ahmed@example\.test/);
+  assert.equal(ctx.__seen.length, 0);
+});
+
+test("إظهار رمز النقل بيطلبه من الخدمة عند الطلب بس", async () => {
+  const ctx = await openDns();
+  assert.equal(ctx.__seen.filter((c) => c.url.indexOf("/auth-code") !== -1).length, 0, "الرمز اتطلب من غير طلب المستخدم");
+  assert.match(ctx.__node("#authValue").textContent, /•/, "الرمز ظاهر من غير طلب");
+
+  ctx.__click(ctx.__node("#authToggle"));
+  await settle();
+  const call = ctx.__seen.filter((c) => c.url.indexOf("/auth-code") !== -1).pop();
+  assert.ok(call, "الرمز مطلوبش من الخدمة");
+  assert.equal(call.init.method, "GET");
+  assert.equal(ctx.__node("#authValue").textContent, "A7F3K9Q2M4X8P1Z6");
+  assert.match(ctx.__node("#authHint").textContent, /سرّي/);
+  assert.equal(ctx.__node("#authCopy").hidden, false);
+
+  ctx.__click(ctx.__node("#authToggle"));
+  assert.match(ctx.__node("#authValue").textContent, /•/);
+  assert.equal(ctx.__node("#authCopy").hidden, true, "زرار النسخ فضل ظاهر بعد الإخفاء");
+});
+
+test("رفض الخدمة لطلب الرمز بيظهر، والرمز مش بيتعرض", async () => {
+  const ctx = await openDns({ rejectAuthCode: true });
+  ctx.__click(ctx.__node("#authToggle"));
+  await settle();
+  assert.match(ctx.__node("#authHint").textContent, /الخدمة رفضت طلب الرمز/);
+  assert.match(ctx.__node("#authHint").textContent, /PROVIDER_ERROR/);
+  assert.match(ctx.__node("#authValue").textContent, /•/, "اتعرض رمز من غير تأكيد الخدمة");
+});
+
+test("الخدمة مش مربوطة: طلب الرمز بيقول كده ومفيش نداء", async () => {
+  const ctx = await openDns({ api: { baseUrl: "" } });
+  ctx.__click(ctx.__node("#authToggle"));
+  await settle();
+  assert.equal(ctx.__seen.length, 0);
+  assert.match(ctx.__node("#authHint").textContent, /مش مربوطة/);
+});
+
 /* --------------------------------- حماية --------------------------------- */
 
 test("manage.js: القرار النهائي عند الخدمة (بينادي setNameservers)", () => {
@@ -368,7 +435,11 @@ test("manage.js: القرار النهائي عند الخدمة (بينادي s
   assert.match(code, /settransferlock/);
   assert.match(code, /setdnssec/);
   assert.match(code, /gettransfereligibility/);
+  assert.match(code, /getdomain/);
+  assert.match(code, /getauthcode/);
   assert.match(code, /migoapi/);
   // ممنوع أي مفتاح سري في الواجهة
   assert.equal(/service_role|service_role_key/.test(code), false);
+  // ممنوع رمز نقل مخزّن في الصفحة
+  assert.equal(/a7f3k9q2m4x8p1z6/.test(code), false, "فيه رمز نقل مكتوب جوه الصفحة");
 });
