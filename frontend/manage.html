@@ -41,7 +41,7 @@
 
       <div id="demoNote" class="card mt-4" style="background:var(--surface-2)">
         <strong style="font-size:var(--fs-sm)">وضع تجريبي</strong>
-        <p class="muted mt-2" style="font-size:var(--fs-sm)">الصفحة دي بتعرض دومين تجريبي. <strong>الـNameservers وسجلات DNS وقفل النقل وDNSSEC إجراءات متوصلة بالخدمة فعلاً</strong>، والخدمة هي اللي بتقرر تقبلهم أو ترفضهم، وأهلية النقل بتتحسب عندها كمان. اللي لسه عرض تجريبي: جهات الاتصال ورمز النقل وبدء النقل.</p>
+        <p class="muted mt-2" style="font-size:var(--fs-sm)">الصفحة دي بتعرض دومين تجريبي. <strong>الـNameservers وسجلات DNS وقفل النقل وDNSSEC وتفاصيل الدومين وجهات الاتصال ورمز النقل وأهلية النقل كلها بتيجي من الخدمة</strong>، والخدمة هي اللي بتقرر تقبل أو ترفض، واللي بيظهر هو اللي الخدمة أكّدته. اللي لسه عرض تجريبي: تعديل بيانات الاتصال وبدء النقل والتجديد.</p>
       </div>
 
       <div class="grid grid-4 mt-5">
@@ -189,6 +189,7 @@
             <p class="muted mt-2" style="font-size:var(--fs-sm)">كل دومين بيتسجّل باسم العميل الفعلي. النظام بيرفض أي محاولة تسجيل بيانات Migo كمالك رسمي.</p>
           </div>
           <div class="grid grid-2 mt-4" id="contactsGrid"></div>
+          <p class="hint mt-3" id="contactsHint">بيانات الاتصال اللي بتظهر هنا هي اللي الخدمة رجّعتها؛ لو الخدمة مش مربوطة بتظهر بيانات تجريبية.</p>
           <p class="dim mt-4" style="font-size:var(--fs-xs)">تعديل بيانات الاتصال بيحتاج تأكيد، وبعض الامتدادات بتطلب توثيق إضافي بعد التسجيل.</p>
         </div>
 
@@ -216,7 +217,7 @@
 
             <div class="card">
               <h3 class="h3">رمز النقل (Auth Code)</h3>
-              <p class="muted mt-3" style="font-size:var(--fs-sm)">الرمز سرّي ومش بيظهر في تفاصيل الدومين. بيتعرض هنا بس عند الطلب، ومعاه تحذير الاستخدام.</p>
+              <p class="muted mt-3" style="font-size:var(--fs-sm)">الرمز سرّي ومش بيظهر في تفاصيل الدومين. بيتطلب من الخدمة عند الطلب بس، ومعاه تحذير الاستخدام، ومش بيتخزّن في الصفحة.</p>
               <div class="row-between card-tight mt-3" style="background:var(--surface-2);border:var(--border);border-radius:var(--r-sm)">
                 <span class="mono" id="authValue">•••• •••• •••• ••••</span>
                 <button class="btn btn-sm" type="button" id="authToggle">إظهار</button>
