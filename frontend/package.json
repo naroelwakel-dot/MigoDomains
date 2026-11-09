@@ -1,0 +1,10 @@
+{
+  "name": "migo-domains-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Migo Domains - الواجهة الساكنة (صفحات + JS بدون أدوات بناء)",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  }
+}
