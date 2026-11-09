@@ -439,3 +439,45 @@ test("getTransferEligibility: بتتحسب عند المزوّد، ومحسوب�
   await assert.rejects(() => service.getTransferEligibility({ domain: "shop-migo.com", claims: { sub: "user-2" } }), (e) => e.code === C.FORBIDDEN);
   await assert.rejects(() => service.getTransferEligibility({ domain: "shop-migo.com" }), (e) => e.code === C.UNAUTHENTICATED);
 });
+
+test("getDomain: جهات الاتصال بترجع من غير أي تكلفة أو هامش", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+  const { details } = await service.getDomain({ domain: "shop-migo.com", claims: USER });
+  assert.ok(details.contacts, "لازم تكون فيه جهات اتصال");
+  for (const role of ["registrant", "admin", "tech", "billing"]) assert.ok(role in details.contacts, "ناقص " + role);
+  const c = details.contacts.registrant;
+  assert.ok(c && c.email, "جهة الاتصال لازم يكون فيها بريد");
+  for (const key of Object.keys(c)) assert.ok(["name", "email", "phone", "country"].includes(key), "حقل غير مسموح: " + key);
+  for (const bad of ["cost", "margin", "wholesale", "micros"]) assert.equal(bad in details.contacts.registrant, false);
+});
+
+test("getAuthCode: الرمز من المزوّد لصاحب الدومين بس، ومسجّل في التدقيق", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+  const out = await service.getAuthCode({ domain: "shop-migo.com", claims: USER });
+  assert.equal(out.ok, true);
+  assert.equal(out.domain, "shop-migo.com");
+  assert.ok(out.authCode && String(out.authCode).length >= 6, "لازم يرجع رمز فعلي");
+  assert.equal(out.sensitive, true, "الرمز لازم يتعلّم كسرّي");
+  assert.ok(out.warning, "لازم يكون فيه تحذير استخدام");
+
+  const entry = service.audit.list().filter((a) => a.action === "domain.auth_code_revealed").pop();
+  assert.ok(entry && entry.actor === "user-1", "العملية الحساسة لازم تتسجّل بالمنادي");
+
+  await assert.rejects(() => service.getAuthCode({ domain: "shop-migo.com", claims: { sub: "user-2" } }), (e) => e.code === C.FORBIDDEN);
+  await assert.rejects(() => service.getAuthCode({ domain: "shop-migo.com" }), (e) => e.code === C.UNAUTHENTICATED);
+  await assert.rejects(() => service.getAuthCode({ domain: "nope-migo.com", claims: USER }), (e) => e.code === C.NOT_FOUND);
+});
+
+test("getAuthCode: الرمز مش بيتخزّن في التفاصيل ولا في قائمة الدومينات", async () => {
+  const { service, payments } = build();
+  await ownedDomain(service, payments);
+  await service.getAuthCode({ domain: "shop-migo.com", claims: USER });
+
+  const { details } = await service.getDomain({ domain: "shop-migo.com", claims: USER });
+  assert.equal("authCode" in details, false, "الرمز ممنوع يظهر في التفاصيل بعد طلبه");
+  const listed = service.listDomains(USER).find((d) => d.domain === "shop-migo.com");
+  assert.ok(listed, "الدومين لازم يظهر في القائمة");
+  assert.equal("authCode" in listed, false, "الرمز ممنوع يظهر في قائمة الدومينات");
+});
