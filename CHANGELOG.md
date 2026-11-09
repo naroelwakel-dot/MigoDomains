@@ -4,6 +4,30 @@
 
 ## [غير مُصدَر]
 
+### Openprovider Adapter + إصلاح اختبار الواجهة (9 نوفمبر 2026) 🔌
+- **جديد:** `providers/lib/openprovider.js` — أدابتر Openprovider الرسمي كامل
+  (15 دالة)، مبني **من التوثيق الرسمي بالحرف** (`developer.openprovider.com`
+  و`data/swagger.json`): المسارات والطلبات والردود كلها من الـspec.
+- **مصادقة وتدوير token:** `POST /auth/login` + cache في الذاكرة بس، والتوكن
+  مابيظهرش في أي رد. مغلّف `{code,data,desc}` مع `code===0` = نجاح.
+- **حمايات في الأدابتر:** ممنوع بيئة غير إنتاجية على مضيف إنتاج · ممنوع اتصال
+  من غير transport مُحقَن · **عنوان Sandbox مش مخمَّن** (NOT VERIFIED ⇒ خطأ
+  صريح) · رمز النقل ما بيظهرش في التفاصيل أبدًا · التوفر المجهول يفضل `UNKNOWN`
+  (مستحيل نعلن «متاح» من قيمة مش مفهومة) · مالك إلزامي عبر `owner_handle`.
+- **اختبارات:** `providers/test/openprovider.test.js` — **23 اختبار** أوفلاين
+  بـtransport وهمي. **مجموع المزوّدين بقى 89 اختبار** (كان 66).
+- **إصلاح خطأ حقيقي:** اختبار `frontend/test/checkout.test.js` كان فاشل لأن
+  `config.js` ما كانش بيعرّف `window.MIGO_CHECKOUT.policiesApproved`، مع إن
+  `checkout.js` بيقرأه. القيمة اتضافت (`policiesApproved: false`، fail-closed)،
+  و**اختبارات الواجهة بقت 94/94 ناجحة** (كانت 93/94). القيمة دي تفعيل الدفع
+  واقف عن قصد لحد اعتماد سياسات المتجر.
+- **التوثيق:** `docs/PROVIDER_INTEGRATION_STATUS.md` (جديد) + تحديث `providers/README.md`.
+- **الحالة بصدق:** الأدابتر **مبني ومختبر محليًا (NOT RUN ضد خدمة حقيقية)**.
+  قيم `status` الفعلية في فحص التوفر **NOT VERIFIED** لحد تشغيل Sandbox حقيقي.
+- **مجموع اختبارات المشروع دلوقتي: 382 اختبار ناجح** (availability 36 · config 7
+  · policies 5 · pricing 72 · providers 89 · backend 38 · workers 25 · frontend 94
+  · tests 16).
+
 ### المحركات والخدمات الناقصة — اتبنت واترفعت (9 نوفمبر 2026) ⚙️
 - **اتبنى:** الوحدات اللي كانت README فارغ بس بقت كود حقيقي: `config/` · `availability/` · `backend/` · `workers/` · `policies/` · `database/seed/` · `tests/`.
 - **محرك التوفر (`availability/`، 36 اختبار):** RDAP أولًا بسيرفر المختص من **ملف IANA Bootstrap الرسمي** (مش `rdap.org` كمصدر وحيد) · 404 = «متاح مؤكد»، انقطاع/مهلة = `UNKNOWN` (ممنوع نفترض متاح) · 5xx = `PROVIDER_ERROR` · **Cache** بمدة على حسب حسم النتيجة · **Rate Limiting** (Token Bucket) · ودمج المصادر **بأولوية الـRegistrar** والاختلاف الحاسم → `MANUAL_REVIEW`.
