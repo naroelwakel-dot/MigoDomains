@@ -39,6 +39,9 @@ export function fakeNode(sel) {
     sel,
     textContent: "",
     innerHTML: "",
+    value: "",
+    checked: false,
+    hidden: false,
     disabled: false,
     _attrs: {},
     listeners: [],
@@ -54,30 +57,32 @@ export function fakeNode(sel) {
 }
 
 /* بيبني بيئة فيها document و location و fetch مزيّفين.
-   opts: { search, api:{baseUrl}, fetch, session } */
+   opts: { search, api:{baseUrl}, fetch, session, policiesApproved } */
 export function makeDom(opts = {}) {
   const nodes = {};
   const calls = [];
-  const byId = {};
 
-  function node(sel) { if (!nodes[sel]) nodes[sel] = fakeNode(sel); return nodes[sel]; }
-
-  const root = fakeNode("#domain-app");
-  root.querySelector = (sel) => node(sel);
-  root.querySelectorAll = (sel) => {
-    if (!nodes[sel + "#all"]) {
-      nodes[sel + "#all"] = [fakeNode(sel), fakeNode(sel)];
+  function node(sel) {
+    if (!nodes[sel]) {
+      const n = fakeNode(sel);
+      n.querySelector = (s) => node(s);
+      n.querySelectorAll = (s) => {
+        if (!nodes[s + "#all"]) nodes[s + "#all"] = [fakeNode(s), fakeNode(s)];
+        return nodes[s + "#all"];
+      };
+      nodes[sel] = n;
     }
-    return nodes[sel + "#all"];
-  };
-  byId["domain-app"] = root;
+    return nodes[sel];
+  }
 
+  const root = node("#domain-app");
   const document = {
-    getElementById: (id) => byId[id] || null,
+    getElementById: (id) => node("#" + id),
     querySelector: (sel) => node(sel),
     querySelectorAll: (sel) => [node(sel)]
   };
 
+  let uuidSeq = 0;
   const sandbox = {
     console,
     Promise, JSON, Error, Object, Array, String, Number, Boolean, RegExp, Date, Math,
@@ -88,7 +93,9 @@ export function makeDom(opts = {}) {
     document,
     localStorage: opts.localStorage || makeStorage(),
     MIGO_API: opts.api || { baseUrl: "" },
-    MigoAuth: { session: () => opts.session || null },
+    MIGO_CHECKOUT: { policiesApproved: opts.policiesApproved === true },
+    crypto: { randomUUID: () => "uuid-" + (++uuidSeq) },
+    MigoAuth: { session: () => opts.session || null, isSignedIn: () => Boolean(opts.signedIn) },
     fetch: (url, init) => {
       calls.push({ url, init });
       const fn = opts.fetch || (() => Promise.reject(new Error("no fetch")));
@@ -101,11 +108,19 @@ export function makeDom(opts = {}) {
   ctx.__nodes = nodes;
   ctx.__calls = calls;
   ctx.__root = root;
+  ctx.__node = (sel) => node(sel);
   /* ضغطة بزر: بتوصل للزر نفسه وللحاوية، زي ما بيحصل في المتصفح (bubbling). */
   ctx.__click = (target) => {
     const n = typeof target === "string" ? node(target) : target;
     n.listeners.filter((l) => l.type === "click").forEach((l) => l.fn({ target: n }));
     root.listeners.filter((l) => l.type === "click").forEach((l) => l.fn({ target: n }));
+  };
+  /* أي حدث تاني (submit مثلاً) على العنصر نفسه */
+  ctx.__fire = (target, type) => {
+    const n = typeof target === "string" ? node(target) : target;
+    const evt = { preventDefault() { this.defaultPrevented = true; }, defaultPrevented: false, target: n };
+    n.listeners.filter((l) => l.type === type).forEach((l) => l.fn(evt));
+    return evt;
   };
   return ctx;
 }
