@@ -157,6 +157,23 @@
       return request("POST", "/dns/records", { body: { domain: domain, records: records } });
     },
 
+    /* تفاصيل الدومين والأمان وأهلية النقل: كلها من الخدمة، مفيش حساب في المتصفح. */
+    getDomain: function (domain) {
+      return request("GET", "/domain/" + encodeURIComponent(domain)).then(function (d) { return d.details; });
+    },
+
+    setTransferLock: function (domain, locked) {
+      return request("POST", "/domain/" + encodeURIComponent(domain) + "/lock", { body: { locked: locked === true } });
+    },
+
+    setDnssec: function (domain, enabled) {
+      return request("POST", "/domain/" + encodeURIComponent(domain) + "/dnssec", { body: { enabled: enabled === true } });
+    },
+
+    getTransferEligibility: function (domain) {
+      return request("GET", "/domain/" + encodeURIComponent(domain) + "/transfer-eligibility");
+    },
+
     /* معاينة تسعير للإدارة: الهامش وسعر البيع بيتحسبوا على الخدمة بمحرك
        التسعير الرسمي. ممنوع أي حساب في المتصفح. المسار للإدارة بس. */
     pricePreview: function (costUsd, fxRate) {
