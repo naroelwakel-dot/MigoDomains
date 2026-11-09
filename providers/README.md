@@ -6,13 +6,13 @@
 
 في الاختبار: Mock أو Sandbox فقط. لا تسجيل حقيقي.
 
-> الحالة: **IMPLEMENTED · TESTED** (المرحلة 5) — 66 اختبار ناجح، بدون شبكة وبدون مفاتيح.
+> الحالة: **IMPLEMENTED · TESTED** (المرحلة 5) — 89 اختبار ناجح، بدون شبكة وبدون مفاتيح.
 
 ## التشغيل
 
 ```bash
 node providers/demo.js                     # عرض حي لكل التدفقات
-node --test providers/test/*.test.js       # 66 اختبار
+node --test providers/test/*.test.js       # 89 اختبار
 ```
 
 > **تنبيه على Node 22:** الأمر `node --test providers/test/` بالمجلد لوحده بيفشل.
@@ -26,6 +26,7 @@ node --test providers/test/*.test.js       # 66 اختبار
 | `lib/states.js` | حالات التوفر (8) · حالات الدومين · أقفال الـregistry · القدرات (12) · قواعد النقل |
 | `lib/contract.js` | `REQUIRED_METHODS` (11) · `RECOMMENDED_METHODS` · `assertProvider` · `guardCapability` |
 | `lib/mock.js` | المزوّد الوهمي الكامل — كل الحالة في الذاكرة |
+| `lib/openprovider.js` | **Openprovider Adapter** الرسمي حسب التوثيق الرسمي (لسه NOT RUN ضد حساب حقيقي) |
 | `lib/bridge.js` | توصيل تكلفة المزوّد بمحرك التسعير، مع بوابة **ممنوع سعر حقيقي من بيانات وهمية** |
 | `lib/index.js` | نقطة الدخول الوحيدة |
 
@@ -48,3 +49,16 @@ node --test providers/test/*.test.js       # 66 اختبار
 
 استبدال المزوّد الوهمي بـOpenprovider Adapter حقيقي — بيفضل **معلّقًا** على قرار فتح الحساب/الرسوم (C).
 التفاصيل الكاملة: `../docs/MOCK_PROVIDER.md`.
+
+## Openprovider Adapter (9 نوفمبر 2026)
+
+- **اتبنى:** `lib/openprovider.js` — مبني من التوثيق الرسمي بالحرف
+  (`developer.openprovider.com` + `data/swagger.json`): المسارات والطلبات
+  والردود كلها من الـspec، مش من تخمين.
+- **كل الاختبارات أوفلاين:** 23 اختبار في `test/openprovider.test.js`،
+  transport وهمي مُحقَن. مفيش شبكة ولا مفاتيح ولا عملية حقيقية.
+- **حمايات:** ممنوع بيئة غير إنتاجية على مضيف إنتاج · ممنوع اتصال من غير
+  transport مُحقَن · عنوان Sandbox **مش مخمَّن** (NOT VERIFIED ⇒ خطأ صريح)
+  · رمز النقل ما بيظهرش في التفاصيل أبدًا · التوفر المجهول يفضل UNKNOWN.
+- **لسه NOT RUN:** مفيش حساب Sandbox ولا مفاتيح، فمفيش أي نداء حقيقي ولا
+  تحقق من قيم `status` الفعلية. التفاصيل والحدود: `../docs/PROVIDER_INTEGRATION_STATUS.md`.
