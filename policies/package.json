@@ -1,0 +1,10 @@
+{
+  "name": "migo-domains-policies",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Migo Domains — وثائق السياسات ونسختها القابلة للتنفيذ.",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  }
+}
