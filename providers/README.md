@@ -6,13 +6,13 @@
 
 في الاختبار: Mock أو Sandbox فقط. لا تسجيل حقيقي.
 
-> الحالة: **IMPLEMENTED · TESTED** (المرحلة 5) — 89 اختبار ناجح، بدون شبكة وبدون مفاتيح.
+> الحالة: **IMPLEMENTED · TESTED** (المرحلة 5) — 93 اختبار ناجح، بدون شبكة وبدون مفاتيح.
 
 ## التشغيل
 
 ```bash
 node providers/demo.js                     # عرض حي لكل التدفقات
-node --test providers/test/*.test.js       # 89 اختبار
+node --test providers/test/*.test.js       # 93 اختبار
 ```
 
 > **تنبيه على Node 22:** الأمر `node --test providers/test/` بالمجلد لوحده بيفشل.
@@ -24,7 +24,7 @@ node --test providers/test/*.test.js       # 89 اختبار
 |---|---|
 | `lib/errors.js` | أكواد الأخطاء الثابتة + `ProviderError` · `CapabilityError` · `TransferEligibilityError` |
 | `lib/states.js` | حالات التوفر (8) · حالات الدومين · أقفال الـregistry · القدرات (12) · قواعد النقل |
-| `lib/contract.js` | `REQUIRED_METHODS` (11) · `RECOMMENDED_METHODS` · `assertProvider` · `guardCapability` |
+| `lib/contract.js` | `REQUIRED_METHODS` (11) · `RECOMMENDED_METHODS` (منها `updateContacts`) · `SENSITIVE_METHODS` · `assertProvider` · `guardCapability` |
 | `lib/mock.js` | المزوّد الوهمي الكامل — كل الحالة في الذاكرة |
 | `lib/openprovider.js` | **Openprovider Adapter** الرسمي حسب التوثيق الرسمي (لسه NOT RUN ضد حساب حقيقي) |
 | `lib/bridge.js` | توصيل تكلفة المزوّد بمحرك التسعير، مع بوابة **ممنوع سعر حقيقي من بيانات وهمية** |
@@ -39,6 +39,17 @@ node --test providers/test/*.test.js       # 89 اختبار
 - **الأهلية تُحسب مش تُخزَّن:** الحالة بتحكم على 60 يوم وقفل النقل وDNSSEC وHold لحظيًا.
 - **الأقفال والأسرار والقدرات:** القدرة = `false` بتمنع العملية **قبل** التنفيذ.
 - **حقن أعطال صريح:** `failNext` · `failAlways` · `setOutage` — مفيش مفاجآت عشوائية.
+
+## تعديل جهات الاتصال والنقل الخارج (9 نوفمبر 2026)
+
+- **`updateContacts`** انضافت للعقد كدالة **موصى بها** (`RECOMMENDED_METHODS`).
+  المزوّد الوهمي بينفّذها على قواعد `ensureContact` نفسها (اسم + بريد صحيح)،
+  وبيانات الموزّع مرفوضة كمالك بـ`REGISTRANT_REQUIRED` / `rule: PER_DOMAIN_REGISTRANT`.
+  Openprovider بينفّذها كـ`handle` في `PUT /domains/{id}`؛ لو الخدمة بعتت
+  اسم/بريد من غير handle بترفض بـ`REGISTRANT_REQUIRED` (وده سلوك صحيح).
+- **النقل الخارج مش محتاج دالة جديدة في العقد:** هو فك القفل (`setLock`) +
+  رمز النقل (`getAuthCode`)، والمسجّل المستلم هو اللي بيبدأ الطلب.
+  `transferDomain` في العقد هي نقل **داخل**.
 
 ## الأسعار الوهمية
 
@@ -55,7 +66,7 @@ node --test providers/test/*.test.js       # 89 اختبار
 - **اتبنى:** `lib/openprovider.js` — مبني من التوثيق الرسمي بالحرف
   (`developer.openprovider.com` + `data/swagger.json`): المسارات والطلبات
   والردود كلها من الـspec، مش من تخمين.
-- **كل الاختبارات أوفلاين:** 23 اختبار في `test/openprovider.test.js`،
+- **كل الاختبارات أوفلاين:** 25 اختبار في `test/openprovider.test.js`،
   transport وهمي مُحقَن. مفيش شبكة ولا مفاتيح ولا عملية حقيقية.
 - **حمايات:** ممنوع بيئة غير إنتاجية على مضيف إنتاج · ممنوع اتصال من غير
   transport مُحقَن · عنوان Sandbox **مش مخمَّن** (NOT VERIFIED ⇒ خطأ صريح)
