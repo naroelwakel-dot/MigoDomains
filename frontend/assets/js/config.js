@@ -24,3 +24,9 @@ window.MIGO_AUTH = {
 window.MIGO_API = {
   baseUrl: ""   // عنوان خدمة المنصة، مثال: https://migo-domains-api.<account>.workers.dev
 };
+
+window.MIGO_CHECKOUT = {
+  // بوابة الدفع مقفولة عن قصد لحد اعتماد سياسات المتجر (الشروط/الاسترجاع/الخصوصية).
+  // ملف checkout.js بيقرأ القيمة دي (fail-closed): طول ما هي false مفيش دفع حقيقي.
+  policiesApproved: false
+};
