@@ -4,7 +4,9 @@
    جدول صريح، مش routing ضمني. كل مسار بيقول: محتاج تسجيل دخول؟ ولا توقيع
    دفع؟ وده اللي بيتفحص **قبل** ما نلمس أي منطق.
 
-   ملاحظة أمنية: مفيش مسار واحد بيطلّع تكلفة المورّد ولا هامش ميجو.
+   ملاحظة أمنية: المسار الوحيد اللي بيطلّع تكلفة/هامش هو
+   `POST /admin/price-preview`، وده محمي بـ`auth: "admin"` وبعد كده
+   بفحص `requireAdmin` جوه طبقة الخدمة. أي مسار تاني ممنوع يطلّعهم.
    ========================================================================== */
 
 export const ROUTES = Object.freeze([
@@ -19,6 +21,7 @@ export const ROUTES = Object.freeze([
   { id: "payment.intent", method: "POST", path: "/payment/intent", auth: "user" },
   { id: "payment.webhook", method: "POST", path: "/payment/webhook", auth: "signature" },
   { id: "dns.set", method: "POST", path: "/dns", auth: "user" },
+  { id: "admin.pricePreview", method: "POST", path: "/admin/price-preview", auth: "admin" },
 ]);
 
 /** يطابق مسار بمعاملات (`/order/:orderId`) ويرجّع {route, params} أو null. */
