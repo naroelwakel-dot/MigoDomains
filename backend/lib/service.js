@@ -459,6 +459,62 @@ export function createBackendService({
     return Object.freeze({ ok: true, domain, nameservers: record.nameservers || nameservers });
   }
 
+  /* سجلات DNS العادية. سجلات السلطة (NS · CAA) ليها مسار الـNameservers
+     وممنوعة من هنا — الخدمة بتفرض ده قبل ما توصل للمزوّد. */
+  const AUTHORITY_RECORD_TYPES = Object.freeze(["NS", "CAA"]);
+
+  function clientDnsRecord(rec) {
+    return Object.freeze({
+      id: rec && rec.id ? rec.id : null,
+      type: rec && rec.type ? rec.type : null,
+      name: rec && rec.name ? rec.name : null,
+      value: rec && rec.value ? rec.value : null,
+      ttl: rec && rec.ttl !== undefined ? rec.ttl : null,
+      authority: Boolean(rec && rec.authority),
+    });
+  }
+
+  async function getDnsRecords({ domain, claims } = {}) {
+    requireOwnedDomainRecord(domain, claims);
+    if (typeof provider.getDnsRecords !== "function") throw new ServiceError("المزوّد لا يدعم قراءة سجلات DNS", C.PROVIDER_ERROR);
+    const out = await provider.getDnsRecords(validateDomain(domain));
+    const records = Array.isArray(out && out.records) ? out.records : [];
+    return Object.freeze({ ok: true, domain, records: records.map(clientDnsRecord) });
+  }
+
+  async function updateDnsRecords({ domain, records, claims } = {}) {
+    requireOwnedDomainRecord(domain, claims);
+    if (typeof provider.updateDnsRecords !== "function") throw new ServiceError("المزوّد لا يدعم تعديل سجلات DNS", C.PROVIDER_ERROR);
+    if (!Array.isArray(records)) throw new ServiceError("سجلات DNS لازم تكون قائمة", C.VALIDATION);
+    const offending = records
+      .map((r) => String((r && r.type) || "").toUpperCase())
+      .filter((t) => AUTHORITY_RECORD_TYPES.includes(t));
+    if (offending.length > 0) {
+      throw new ServiceError(
+        "سجلات السلطة (" + offending.join(", ") + ") مش بتتعدّل من هنا — استخدم الـNameservers",
+        C.VALIDATION,
+        { types: offending }
+      );
+    }
+    let out;
+    try {
+      out = await provider.updateDnsRecords({
+        name: validateDomain(domain),
+        records: records.map((r) => ({ type: r && r.type, name: r && r.name, value: r && r.value, ttl: r && r.ttl })),
+      });
+    } catch (err) {
+      const code = err && err.code ? err.code : null;
+      // أخطاء المدخلات تطلع من العميل، مش خطأ مزوّد.
+      if (code === "DNS_RECORD_INVALID" || code === "AUTHORITY_RECORD_IMMUTABLE") {
+        throw new ServiceError(err.message || "سجل DNS مرفوض", C.VALIDATION, { code });
+      }
+      throw new ServiceError("فشل تعديل سجلات DNS عند المزوّد", C.PROVIDER_ERROR, { code });
+    }
+    const kept = Array.isArray(out && out.records) ? out.records : [];
+    audit.append({ action: "domain.dns_records_updated", target: domain, actor: claims && claims.sub, detail: { count: kept.length } });
+    return Object.freeze({ ok: true, domain, replaced: true, records: kept.map(clientDnsRecord) });
+  }
+
   return {
     search,
     checkAvailability,
@@ -474,6 +530,8 @@ export function createBackendService({
     renewDomain,
     transferDomain,
     setNameservers,
+    getDnsRecords,
+    updateDnsRecords,
     audit,
     idempotency,
     authz,
