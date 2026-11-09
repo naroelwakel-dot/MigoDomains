@@ -15,6 +15,7 @@ export const ROUTES = Object.freeze([
   { id: "order.create", method: "POST", path: "/order", auth: "user" },
   { id: "order.list", method: "GET", path: "/orders", auth: "user" },
   { id: "order.get", method: "GET", path: "/order/:orderId", auth: "user" },
+  { id: "domains.list", method: "GET", path: "/domains", auth: "user" },
   { id: "payment.intent", method: "POST", path: "/payment/intent", auth: "user" },
   { id: "payment.webhook", method: "POST", path: "/payment/webhook", auth: "signature" },
   { id: "dns.set", method: "POST", path: "/dns", auth: "user" },
