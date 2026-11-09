@@ -41,7 +41,7 @@
 
       <div id="demoNote" class="card mt-4" style="background:var(--surface-2)">
         <strong style="font-size:var(--fs-sm)">وضع تجريبي</strong>
-        <p class="muted mt-2" style="font-size:var(--fs-sm)">الصفحة دي بتعرض دومين تجريبي. <strong>حفظ الـNameservers هو الإجراء الوحيد المتوصل بالخدمة فعلاً</strong>، والخدمة هي اللي بتقرر تقبله أو ترفضه. باقي التعديلات (سجلات DNS · قفل النقل · DNSSEC · النقل) لسه عرض تجريبي ومش بتتحفظ.</p>
+        <p class="muted mt-2" style="font-size:var(--fs-sm)">الصفحة دي بتعرض دومين تجريبي. <strong>حفظ الـNameservers وسجلات DNS هما الإجراءان المتوصلان بالخدمة فعلاً</strong>، والخدمة هي اللي بتقرر تقبلهم أو ترفضهم. باقي التعديلات (قفل النقل · DNSSEC · النقل · جهات الاتصال) لسه عرض تجريبي ومش بتتحفظ.</p>
       </div>
 
       <div class="grid grid-4 mt-5">
@@ -149,6 +149,7 @@
             </table>
           </div>
           <p class="swipe-hint">اسحب الجدول أفقيًا لرؤية كل الأعمدة.</p>
+          <p class="hint mt-3" id="dnsHint">الحفظ بيتبعت للخدمة، واللي بيظهر هنا هو اللي الخدمة أكّدته.</p>
 
           <div class="card mt-5">
             <h3 class="h3">إضافة سجل</h3>
@@ -177,7 +178,7 @@
               <p class="hint error mt-3" id="dnsError" hidden></p>
               <button class="btn btn-primary mt-4" type="submit">إضافة السجل</button>
             </form>
-            <p class="dim mt-3" style="font-size:var(--fs-xs)">TTL المسموح من 60 لـ86400 ثانية. التعديلات تجريبية وما بتتحفظش.</p>
+            <p class="dim mt-3" style="font-size:var(--fs-xs)">TTL المسموح من 60 لـ86400 ثانية. الحفظ بيتبعت للخدمة كـzone كاملة، والسجل اللي مش في الطلب بيتشال. سجلات السلطة (NS · CAA) مش بتتعدّل من هنا.</p>
           </div>
         </div>
 
