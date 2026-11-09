@@ -11,7 +11,8 @@
      5) أي عملية حسّاسة بتتسجّل في سجل التدقيق.
    ========================================================================== */
 
-import { OPERATIONS } from "../../pricing/lib/config.js";
+import { OPERATIONS, DEFAULT_CONFIG } from "../../pricing/lib/config.js";
+import { priceFromCost, toFixedString, toMicros, toDecimalString, convertToEgp } from "../../pricing/lib/index.js";
 import { buildQuoteFromProvider, recheckFromProvider } from "../../providers/lib/bridge.js";
 import { AVAILABILITY_STATES as S } from "../../providers/lib/states.js";
 import { ServiceError, SERVICE_ERROR_CODES as C } from "./errors.js";
@@ -157,6 +158,82 @@ export function createBackendService({
     }
     audit.append({ action: "quote.issued", target: name, actor: (claims && claims.sub) || "anonymous", detail: { operation, quoteId: built.quote.quoteId } });
     return Object.freeze({ ok: true, quoteId: built.quote.quoteId, quote: built.clientQuote, localTestOnly: Boolean(built.localTestOnly) });
+  }
+
+  /* ------------------- معاينة تسعير للإدارة ------------------- */
+
+  /** نص قاعدة الهامش للعرض: «+3.00 ثابت» أو «15% بحد أدنى 4.00». */
+  function ruleText(detail) {
+    if (!detail) return "-";
+    if (detail.mode === "percent") return detail.value + "% بحد أدنى " + detail.floor;
+    return "+" + detail.value + " ثابت";
+  }
+
+  /**
+   * معاينة الهامش وسعر البيع من تكلفة كلية — **للإدارة بس**.
+   * بتستخدم نفس محرك التسعير المعتمد (`pricing/lib`) عشان لوحة الإدارة
+   * مايبقاش عندها محرك تاني بيتفرّع عنه. مفيش أي حساب تسعير في المتصفح.
+   * التكلفة والهامش بيظهروا هنا فقط (قواعد الفصل في docs/DESIGN_SYSTEM.md).
+   */
+  function previewPrice({ costUsd, fx = null, claims } = {}) {
+    authz.requireAdmin(claims);
+    const pricing = pricingConfig || DEFAULT_CONFIG;
+    const rounding = pricing.rounding || DEFAULT_CONFIG.rounding;
+
+    let totalMicros;
+    try {
+      totalMicros = toMicros(costUsd);
+    } catch (err) {
+      throw new ServiceError("تكلفة غير صحيحة: صيغة رقمية مطلوبة", C.VALIDATION);
+    }
+    if (totalMicros === null) throw new ServiceError("التكلفة مطلوبة", C.VALIDATION);
+    if (totalMicros < 0n) throw new ServiceError("التكلفة لا تكون سالبة", C.VALIDATION);
+
+    let priced;
+    try {
+      priced = priceFromCost(totalMicros, {
+        tiers: pricing.tiers || DEFAULT_CONFIG.tiers,
+        zeroCost: pricing.zeroCost || DEFAULT_CONFIG.zeroCost,
+      });
+    } catch (err) {
+      // رفض المحرك (زي التكلفة صفر بدون قرار P3) بيانات للعرض، مش خطأ تنفيذ.
+      if (err && err.name === "MarginError") {
+        return Object.freeze({ priced: false, reason: err.code || "MARGIN_ERROR", message: err.message });
+      }
+      throw err;
+    }
+
+    const usd = (micros) => toFixedString(micros, rounding.usdDecimals, rounding.mode);
+
+    let egp = { available: false, value: null, reason: "NO_FX", message: "اكتب سعر صرف لعرض المقابل بالجنيه." };
+    if (fx && fx.rate !== undefined && fx.rate !== null && fx.rate !== "") {
+      const converted = convertToEgp(
+        priced.saleMicros,
+        { rate: fx.rate, source: "admin_manual", fetchedAt: now() },
+        { now: now(), maxAgeMs: (pricing.fx && pricing.fx.maxAgeMs) || DEFAULT_CONFIG.fx.maxAgeMs, bufferPercent: "0" }
+      );
+      egp = converted.ok
+        ? { available: true, value: toFixedString(converted.egpMicros, rounding.egpDecimals, rounding.mode), rate: converted.rate, source: converted.source }
+        : { available: false, value: null, reason: converted.reason, message: converted.message };
+    }
+
+    audit.append({
+      action: "admin.price_preview",
+      target: "price-preview",
+      actor: claims.sub,
+      detail: { costUsd: usd(totalMicros) },
+    });
+
+    return Object.freeze({
+      priced: true,
+      costUsd: usd(totalMicros),
+      marginUsd: usd(priced.marginMicros),
+      saleUsd: usd(priced.saleMicros),
+      marginMicros: toDecimalString(priced.marginMicros),
+      saleMicros: toDecimalString(priced.saleMicros),
+      tier: Object.freeze({ label: priced.marginLabel || null, rule: ruleText(priced.marginDetail), id: priced.marginRuleId || null }),
+      egp: Object.freeze(egp),
+    });
   }
 
   /* ------------------------------ الطلبات ------------------------------ */
@@ -386,6 +463,7 @@ export function createBackendService({
     search,
     checkAvailability,
     quote,
+    previewPrice,
     createOrder,
     getOrder,
     listOrders,
