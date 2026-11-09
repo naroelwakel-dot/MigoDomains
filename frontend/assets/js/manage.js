@@ -1,9 +1,9 @@
 /* ==========================================================================
    Migo Domains - إدارة الدومين (صفحة manage.html)
    --------------------------------------------------------------------------
-   بيانات العرض تجريبية، **ماعدا حفظ الـNameservers**: ده بيتنادى على خدمة
-   المنصة (`POST /dns`) والخدمة هي المرجع — لو رفضت، الصفحة بتقول كده ومش
-   بتحفظ حاجة محليًا. مفيش أي مفاتيح.
+   بيانات العرض تجريبية، **ماعدا حفظ الـNameservers وسجلات DNS**: دول
+   بيتنادوا على خدمة المنصة (`POST /dns` و`POST /dns/records`) والخدمة هي
+   المرجع — لو رفضت، الصفحة بتقول كده ومش بتحفظ حاجة محليًا. مفيش أي مفاتيح.
 
    الفحص المحلي للـNameservers والـDNS **مرآة** لقواعد المزوّد
    (`providers/lib/mock.js`)، ووظيفته رد سريع للمستخدم بس — القرار النهائي
@@ -92,7 +92,7 @@
   }
 
   /** الخدمة مربوطة وفيه جلسة؟ وإلا سبب واضح للمستخدم. */
-  function nsService() {
+  function platformService() {
     if (!window.migoApi || !window.migoApi.isConfigured()) {
       return { ok: false, message: "خدمة المنصة مش مربوطة، فالتغيير مااتبعتش ومش محفوظ." };
     }
@@ -121,20 +121,15 @@
   /** بيعرض في الجدول الخوادم اللي **الخدمة** أكّدتها. */
   function applyNs(applied) {
     STATE.nameservers = applied.slice();
-    STATE.records = STATE.records.filter(function (r) { return !r.authority; });
-    STATE.records.unshift(
-      { type: "NS", name: "@", value: applied[0], ttl: 3600, authority: true },
-      { type: "NS", name: "@", value: applied[1], ttl: 3600, authority: true }
-    );
     renderNs();
-    renderDns();
+    refreshDns();
   }
 
   function submitNameservers(lines) {
     var problem = localNsProblem(lines);
     if (problem) { setNsHint(problem, true); return; }
 
-    var svc = nsService();
+    var svc = platformService();
     if (!svc.ok) { setNsHint(svc.message, true); return; }
 
     var btn = $("#nsSubmit");
@@ -179,15 +174,82 @@
         "</td><td>" + control + "</td></tr>";
     }).join("");
   }
+
+  function setDnsHint(text, isError) {
+    var hint = $("#dnsHint");
+    if (!hint) return;
+    hint.className = isError ? "hint error" : "hint";
+    hint.textContent = text;
+  }
+
+  /* الديمو: سجلات تجريبية + سجلات السلطة من الـNameservers الحالية. */
+  function demoRecords() {
+    var auth = STATE.nameservers.map(function (ns) {
+      return { type: "NS", name: "@", value: ns, ttl: 3600, authority: true };
+    });
+    var normal = STATE.records
+      .filter(function (r) { return !r.authority; })
+      .map(function (r) { return { type: r.type, name: r.name, value: r.value, ttl: r.ttl, authority: false }; });
+    if (!normal.length) {
+      normal = [
+        { type: "A", name: "@", value: "192.0.2.10", ttl: 3600, authority: false },
+        { type: "CNAME", name: "www", value: STATE.name, ttl: 3600, authority: false },
+        { type: "MX", name: "@", value: "mail.example.test", ttl: 3600, authority: false },
+        { type: "TXT", name: "@", value: "v=spf1 -all", ttl: 3600, authority: false }
+      ];
+    }
+    return auth.concat(normal);
+  }
+
+  /** بيعرض السجلات اللي **الخدمة** رجّعتها، وإلا الديمو. */
+  function applyDns(records) {
+    STATE.records = (records && records.length ? records : demoRecords()).map(function (r) {
+      return { id: r.id || null, type: r.type, name: r.name, value: r.value, ttl: r.ttl, authority: r.authority === true };
+    });
+    renderDns();
+  }
+
+  /** يجيب السجلات من الخدمة لو مربوطة، وإلا يفضل على الديمو. */
+  function refreshDns() {
+    var svc = platformService();
+    if (!svc.ok) { applyDns(demoRecords()); return; }
+    svc.api.getDnsRecords(STATE.name).then(function (records) {
+      applyDns(records);
+    }).catch(function () { applyDns(demoRecords()); });
+  }
+
+  /** السجلات العادية بس (سجلات السلطة مش بتتبعت للخدمة). */
+  function zoneRecords() {
+    return STATE.records.filter(function (r) { return !r.authority; }).map(function (r) {
+      return { type: r.type, name: r.name, value: r.value, ttl: r.ttl };
+    });
+  }
+
+  function submitDns(records, okMessage) {
+    var svc = platformService();
+    if (!svc.ok) { setDnsHint(svc.message, true); return; }
+    setDnsHint("جاري الإرسال للخدمة...", false);
+    svc.api.updateDnsRecords(STATE.name, records).then(function (res) {
+      applyDns(res && res.records ? res.records : demoRecords());
+      setDnsHint("الخدمة أكّدت التحديث.", false);
+      toast(okMessage || "تم تحديث سجلات DNS على الخدمة", "ok");
+    }).catch(function (err) {
+      var msg = (err && err.message) || "خطأ غير متوقع";
+      setDnsHint("الخدمة رفضت التغيير: " + msg + (err && err.code ? " (" + err.code + ")" : ""), true);
+      toast("الخدمة رفضت التغيير: مفيش حاجة اتحفظت", "danger");
+    });
+  }
+
   $("#dnsBody").addEventListener("click", function (e) {
     var b = e.target.closest("[data-del]");
     if (!b) return;
     var i = Number(b.getAttribute("data-del"));
     var rec = STATE.records[i];
-    if (!rec || rec.authority) { toast("سجلات السلطة مش بتتحذف من هنا", "danger"); return; }
-    STATE.records.splice(i, 1);
-    renderDns();
-    toast("اتشال السجل " + rec.type + " (تجريبي)", "warn");
+    if (!rec || rec.authority) { toast("سجلات السلطة مش بتتحذف من هنا — تتبدّل من تبويب Nameservers", "danger"); return; }
+    var kept = STATE.records.filter(function (r, idx) { return idx !== i && !r.authority; }).map(function (r) {
+      return { type: r.type, name: r.name, value: r.value, ttl: r.ttl };
+    });
+    submitDns(kept, "اتشال السجل " + rec.type + " من الخدمة");
   });
 
   $("#dnsForm").addEventListener("submit", function (e) {
@@ -205,10 +267,10 @@
     if (!Number.isInteger(ttl) || ttl < 60 || ttl > 86400) return fail("TTL لازم يكون من 60 لـ86400 ثانية.");
 
     err.hidden = true;
-    STATE.records.push({ type: type, name: name, value: value, ttl: ttl, authority: false });
-    renderDns();
+    var next = zoneRecords();
+    next.push({ type: type, name: name, value: value, ttl: ttl });
+    submitDns(next, "اتضاف السجل " + type + " على الخدمة");
     $("#dnsValue").value = "";
-    toast("اتضاف السجل " + type + " (تجريبي)", "ok");
   });
 
   /* ------------------------------------------------------------ تبويب: جهات الاتصال */
@@ -344,7 +406,7 @@
 
   /* ------------------------------------------------------------ أول رسم */
   renderNs();
-  renderDns();
+  refreshDns();
   renderSecurity();
   renderEligibility();
 })();
