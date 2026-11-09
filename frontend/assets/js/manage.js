@@ -69,15 +69,18 @@
   var RESELLER_TOKENS = ["migo", "naroelwakel"];
 
   /* -------------------------------------------------------- بطاقات النظرة العامة */
-  var expires = new Date(STATE.expires + "T00:00:00Z");
-  var daysLeft = Math.ceil((expires.getTime() - TODAY.getTime()) / DAY);
-  $("#expiryValue").textContent = fmt(expires);
-  $("#daysLeftValue").textContent = daysLeft + " يوم متبقي";
-  $("#autoRenewValue").textContent = STATE.autoRenew ? "مفعّل" : "متوقف";
-  $("#createdValue").textContent = fmt(new Date(STATE.created + "T00:00:00Z"));
-  $("#ownerValue").textContent = STATE.owner;
-  $("#providerPill").textContent = STATE.providerConnected ? "متصل" : "غير متصل";
-  $("#providerPill").className = "pill " + (STATE.providerConnected ? "ok" : "warn");
+  function renderOverview() {
+    var expires = new Date(STATE.expires + "T00:00:00Z");
+    var daysLeft = Math.ceil((expires.getTime() - TODAY.getTime()) / DAY);
+    $("#expiryValue").textContent = fmt(expires);
+    $("#daysLeftValue").textContent = daysLeft + " يوم متبقي";
+    $("#autoRenewValue").textContent = STATE.autoRenew ? "مفعّل" : "متوقف";
+    $("#createdValue").textContent = fmt(new Date(STATE.created + "T00:00:00Z"));
+    $("#ownerValue").textContent = STATE.owner;
+    $("#statusPill").textContent = STATE.statusLabel;
+    $("#providerPill").textContent = STATE.providerConnected ? "متصل" : "غير متصل";
+    $("#providerPill").className = "pill " + (STATE.providerConnected ? "ok" : "warn");
+  }
 
   /* ------------------------------------------------------------ تبويب: Nameservers */
   function renderNs() {
@@ -321,18 +324,38 @@
     $("#lockPill").textContent = "قفل النقل: " + (STATE.lock ? "مفعّل" : "متوقف");
     $("#lockPill").className = "pill " + (STATE.lock ? "ok" : "warn");
   }
-  $("#lockToggle").addEventListener("click", function () {
-    STATE.lock = !STATE.lock;
-    renderSecurity();
-    renderEligibility();
-    toast(STATE.lock ? "اتقفل النقل (تجريبي)" : "اتفتح النقل (تجريبي)", STATE.lock ? "ok" : "warn");
-  });
-  $("#dnssecToggle").addEventListener("click", function () {
-    STATE.dnssec = !STATE.dnssec;
-    renderSecurity();
-    renderEligibility();
-    toast(STATE.dnssec ? "اتفعّل DNSSEC (تجريبي)" : "اتقفل DNSSEC (تجريبي)", STATE.dnssec ? "warn" : "ok");
-  });
+
+  function setSecurityHint(text, isError) {
+    var hint = $("#securityHint");
+    if (!hint) return;
+    hint.className = isError ? "hint error" : "hint";
+    hint.textContent = text;
+  }
+
+  /** القفل وDNSSEC بيتغيّروا على الخدمة، والصفحة بتعكس رد الخدمة بس. */
+  function toggleSecurity(kind) {
+    var next = kind === "lock" ? !STATE.lock : !STATE.dnssec;
+    var svc = platformService();
+    if (!svc.ok) { setSecurityHint(svc.message, true); return; }
+    setSecurityHint("جاري الإرسال للخدمة...", false);
+    var call = kind === "lock" ? svc.api.setTransferLock(STATE.name, next) : svc.api.setDnssec(STATE.name, next);
+    call.then(function (res) {
+      if (kind === "lock") STATE.lock = res && typeof res.locked === "boolean" ? res.locked : next;
+      else STATE.dnssec = res && typeof res.dnssec === "boolean" ? res.dnssec : next;
+      renderSecurity();
+      refreshEligibility();
+      setSecurityHint("الخدمة أكّدت التحديث.", false);
+      toast(kind === "lock"
+        ? (STATE.lock ? "اتقفل النقل على الخدمة" : "اتفتح النقل على الخدمة")
+        : (STATE.dnssec ? "اتفعّل DNSSEC على الخدمة" : "اتقفل DNSSEC على الخدمة"), "ok");
+    }).catch(function (err) {
+      setSecurityHint("الخدمة رفضت التغيير: " + ((err && err.message) || "خطأ غير متوقع") + (err && err.code ? " (" + err.code + ")" : ""), true);
+      toast("الخدمة رفضت التغيير: مفيش حاجة اتتحفظت", "danger");
+    });
+  }
+
+  $("#lockToggle").addEventListener("click", function () { toggleSecurity("lock"); });
+  $("#dnssecToggle").addEventListener("click", function () { toggleSecurity("dnssec"); });
 
   $("#authToggle").addEventListener("click", function () {
     var shown = $("#authValue").getAttribute("data-shown") === "1";
@@ -363,10 +386,11 @@
   });
 
   /* -------------------------------------------------------------- تبويب: النقل */
-  function renderEligibility() {
+  /* فحص محلي للعرض التجريبي بس — القرار النهائي بييجي من الخدمة. */
+  function localEligibilityChecks() {
     var anchor = STATE.lastTransferAt || STATE.created;
     var days = Math.floor((TODAY.getTime() - new Date(anchor + "T00:00:00Z").getTime()) / DAY);
-    var checks = [
+    return [
       { ok: days >= 60, label: "مر 60 يوم من " + (STATE.lastTransferAt ? "آخر نقل" : "التسجيل"),
         detail: "المرّ " + days + " يوم" },
       { ok: !STATE.lock, label: "قفل النقل مفتوح", detail: STATE.lock ? "القفل مفعّل حاليًا" : "مفيش قفل" },
@@ -374,6 +398,22 @@
       { ok: STATE.status === "ACTIVE", label: "حالة الدومين نشطة", detail: STATE.statusLabel },
       { ok: Boolean(STATE.authCode), label: "رمز النقل متاح", detail: "متاح لصاحب الدومين" }
     ];
+  }
+
+  /** serviceResult: رد الخدمة (eligible + reasons) لو متاح، وإلا الديمو. */
+  function renderEligibility(serviceResult) {
+    var checks = localEligibilityChecks();
+    var eligible = checks.every(function (c) { return c.ok; });
+
+    if (serviceResult && typeof serviceResult.eligible === "boolean") {
+      eligible = serviceResult.eligible;
+      var reasons = Array.isArray(serviceResult.reasons) ? serviceResult.reasons : [];
+      checks = reasons.map(function (r) {
+        return { ok: false, label: r.message || "شرط مش متحقق", detail: r.code || "" };
+      });
+      if (eligible) checks = [{ ok: true, label: "الخدمة أكدّت تحقق كل شروط النقل", detail: "" }];
+    }
+
     $("#eligList").innerHTML = checks.map(function (c) {
       return '<li class="row-between">' +
         '<span class="row"><span aria-hidden="true" class="dim">' + (c.ok ? "✓" : "✗") + "</span>" +
@@ -383,7 +423,6 @@
     }).join("");
 
     var blocked = checks.filter(function (c) { return !c.ok; });
-    var eligible = blocked.length === 0;
     $("#eligResult").innerHTML = eligible
       ? '<div class="row wrap-flex">' + pill("ok", "مؤهّل للنقل") + "</div>" +
         '<p class="muted mt-3" style="font-size:var(--fs-sm)">كل الشروط متحققة. النقل بيبدأ من المزوّد الحالي، وبيحتاج رمز النقل من تبويب الأمان.</p>'
@@ -392,9 +431,49 @@
         blocked.map(function (c) { return esc(c.label); }).join(" · ") + ".</p>";
     $("#startTransfer").disabled = !eligible;
   }
+
+  /** الأهلية بتتحسب في الخدمة؛ الديمو بديل عرض بس. */
+  function refreshEligibility() {
+    var svc = platformService();
+    if (!svc.ok) { renderEligibility(null); return; }
+    svc.api.getTransferEligibility(STATE.name).then(function (r) {
+      renderEligibility(r);
+    }).catch(function () { renderEligibility(null); });
+  }
   $("#startTransfer").addEventListener("click", function () {
     toast("بدأ طلب نقل تجريبي · الحالة: قيد النقل (مش مكتمل)", "warn");
   });
+
+  /* ------------------------------------------ بيانات الدومين من الخدمة */
+  var STATUS_LABELS = {
+    ACTIVE: "نشط",
+    TRANSFER_PENDING: "قيد النقل",
+    EXPIRED: "منتهي",
+    REDEMPTION_PERIOD: "فترة الاسترداد",
+    PENDING_DELETE: "قيد الحذف"
+  };
+
+  /** يقرأ تفاصيل الدومين من الخدمة ويملّي الصفحة بيها. */
+  function loadDomain() {
+    var svc = platformService();
+    if (!svc.ok) return;
+    svc.api.getDomain(STATE.name).then(function (d) {
+      if (!d) return;
+      if (d.expiresAt) STATE.expires = String(d.expiresAt).slice(0, 10);
+      if (d.registeredAt) STATE.created = String(d.registeredAt).slice(0, 10);
+      if (d.status) { STATE.status = d.status; STATE.statusLabel = STATUS_LABELS[d.status] || d.status; }
+      if (d.registrant && d.registrant.email) STATE.owner = d.registrant.email;
+      if (typeof d.transferLock === "boolean") STATE.lock = d.transferLock;
+      if (typeof d.dnssec === "boolean") STATE.dnssec = d.dnssec;
+      if (Array.isArray(d.nameservers) && d.nameservers.length) {
+        STATE.nameservers = d.nameservers.slice();
+        renderNs();
+      }
+      renderOverview();
+      renderSecurity();
+      refreshEligibility();
+    }).catch(function () { /* يفضل على العرض التجريبي */ });
+  }
 
   /* ------------------------------------------------------------ تنقل سريع */
   $$("[data-goto]").forEach(function (b) {
@@ -405,8 +484,10 @@
   });
 
   /* ------------------------------------------------------------ أول رسم */
+  renderOverview();
   renderNs();
   refreshDns();
   renderSecurity();
-  renderEligibility();
+  renderEligibility(null);
+  loadDomain();
 })();
