@@ -165,6 +165,12 @@ export function createApp({ service, config = {} } = {}) {
           return json(await service.getTransferEligibility({ domain: params.name, claims }), 200, request, allowedOrigins);
         case "domain.authCode":
           return json(await service.getAuthCode({ domain: params.name, claims }), 200, request, allowedOrigins);
+        case "domain.contacts": {
+          const body = await readJson(request);
+          return json(await service.updateContacts({ domain: params.name, contacts: body.contacts, claims }), 200, request, allowedOrigins);
+        }
+        case "domain.transferOut":
+          return json(await service.startTransferOut({ domain: params.name, claims }), 200, request, allowedOrigins);
         case "admin.pricePreview": {
           const body = await readJson(request);
           return json({ ok: true, preview: service.previewPrice({ costUsd: body.costUsd, fx: body.fx || null, claims }) }, 200, request, allowedOrigins);
