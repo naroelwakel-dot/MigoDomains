@@ -246,6 +246,25 @@ test("الـNameservers: بيترفض أقل من 2", async () => {
   );
 });
 
+test("جهات الاتصال: بتتبعت كـhandle في PUT /domains/{id}", async () => {
+  const { adapter, fetch } = make([
+    { match: "/domains/10", method: "PUT", reply: { code: 0, data: { success: true } } },
+  ]);
+  const r = await adapter.updateContacts({ providerId: 10, contacts: { admin: { handle: "H-22" } } });
+  assert.deepEqual(r.updatedRoles, ["admin"]);
+  const call = fetch.calls.find((c) => c.method === "PUT");
+  assert.equal(call.body.admin_handle, "H-22");
+  assert.equal(call.body.owner_handle, undefined);
+});
+
+test("جهات الاتصال: بيانات مباشرة من غير handle مرفوضة", async () => {
+  const { adapter } = make([]);
+  await assert.rejects(
+    () => adapter.updateContacts({ providerId: 10, contacts: { registrant: { name: "أحمد", email: "a@b.test" } } }),
+    (e) => e.code === PROVIDER_ERROR_CODES.REGISTRANT_REQUIRED
+  );
+});
+
 test("سجلات DNS: قراءة وكتابة بالمغلّف الصحيح", async () => {
   const { adapter, fetch } = make([
     {
