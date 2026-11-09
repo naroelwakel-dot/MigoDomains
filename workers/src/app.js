@@ -163,6 +163,8 @@ export function createApp({ service, config = {} } = {}) {
         }
         case "domain.transferEligibility":
           return json(await service.getTransferEligibility({ domain: params.name, claims }), 200, request, allowedOrigins);
+        case "domain.authCode":
+          return json(await service.getAuthCode({ domain: params.name, claims }), 200, request, allowedOrigins);
         case "admin.pricePreview": {
           const body = await readJson(request);
           return json({ ok: true, preview: service.previewPrice({ costUsd: body.costUsd, fx: body.fx || null, claims }) }, 200, request, allowedOrigins);
