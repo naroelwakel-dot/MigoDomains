@@ -1,0 +1,10 @@
+{
+  "name": "migo-domains-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Migo Domains — اختبارات التكامل والأمان على مستوى المشروع كله.",
+  "scripts": {
+    "test": "node --test \"*.test.js\""
+  }
+}
