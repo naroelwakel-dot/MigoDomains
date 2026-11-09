@@ -41,7 +41,7 @@
 
       <div id="demoNote" class="card mt-4" style="background:var(--surface-2)">
         <strong style="font-size:var(--fs-sm)">وضع تجريبي</strong>
-        <p class="muted mt-2" style="font-size:var(--fs-sm)">الصفحة دي بتعرض دومين تجريبي. <strong>الـNameservers وسجلات DNS وقفل النقل وDNSSEC وتفاصيل الدومين وجهات الاتصال ورمز النقل وأهلية النقل كلها بتيجي من الخدمة</strong>، والخدمة هي اللي بتقرر تقبل أو ترفض، واللي بيظهر هو اللي الخدمة أكّدته. اللي لسه عرض تجريبي: تعديل بيانات الاتصال وبدء النقل والتجديد.</p>
+        <p class="muted mt-2" style="font-size:var(--fs-sm)">الصفحة دي بتعرض دومين تجريبي. <strong>الـNameservers وسجلات DNS وقفل النقل وDNSSEC وتفاصيل الدومين وجهات الاتصال ورمز النقل وأهلية النقل كلها بتيجي من الخدمة</strong>، والخدمة هي اللي بتقرر تقبل أو ترفض، واللي بيظهر هو اللي الخدمة أكّدته. اللي لسه مش موصّل: تعديل بيانات الاتصال (مفيش دالة في عقد المزوّد) · بدء النقل (عقد المزوّد فيه نقل داخل بس) · التجديد (عملية مدفوعة ومستنية قرار بوابة الدفع). مفيش زرار فيهم بيدّعي نجاح.</p>
       </div>
 
       <div class="grid grid-4 mt-5">
@@ -93,12 +93,12 @@
               <h3 class="h3">إجراءات سريعة</h3>
               <p class="muted mt-3" style="font-size:var(--fs-sm)">أكتر حاجة العميل بيحتاجها بعد التسجيل: تجديد، تحديث DNS، وتأمين الدومين قبل النقل.</p>
               <div class="row wrap-flex mt-4">
-                <button class="btn btn-primary" type="button" data-toast="تجديد migo-egypt.com (تجريبي)" data-toast-kind="ok">جدّد الآن</button>
+                <button class="btn btn-primary" type="button" data-toast="التجديد لسه مش موصّل: عملية مدفوعة ومستنية قرار بوابة الدفع (E)" data-toast-kind="warn">جدّد الآن</button>
                 <button class="btn" type="button" data-goto="ns">إدارة الـNameservers</button>
                 <button class="btn" type="button" data-goto="dns">سجلات DNS</button>
                 <button class="btn" type="button" data-goto="security">الأمان والنقل</button>
               </div>
-              <p class="dim mt-4" style="font-size:var(--fs-xs)">كل الإجراءات هنا توضيحية في مرحلة التصميم، ومفيش أي تغيير حقيقي على أي دومين.</p>
+              <p class="dim mt-4" style="font-size:var(--fs-xs)">التجديد لسه مش موصّل: عملية مدفوعة ومستنية قرار بوابة الدفع (E). الـNameservers وسجلات DNS والأمان والنقل إجراءات حقيقية على الخدمة.</p>
             </div>
           </div>
         </div>
@@ -240,6 +240,7 @@
               <h3 class="h3">النتيجة</h3>
               <div class="mt-3" id="eligResult"></div>
               <button class="btn btn-primary mt-4" type="button" id="startTransfer" disabled>ابدأ النقل</button>
+              <p class="hint mt-3" id="transferHint">بدء النقل لسه مش موصّل: عقد المزوّد فيه نقل **داخل** بس، ومفيش دالة نقل خارج.</p>
               <p class="dim mt-3" style="font-size:var(--fs-xs)">النقل بيبدأ من المزوّد الحالي، وبيفضل "قيد النقل" لحد ما يتأكد. ممنوع اعتباره منتهيًا قبل التأكيد.</p>
             </div>
           </div>
