@@ -151,6 +151,20 @@ export function createApp({ service, config = {} } = {}) {
           const body = await readJson(request);
           return json(await service.updateDnsRecords({ domain: body.domain, records: body.records, claims }), 200, request, allowedOrigins);
         }
+        case "domain.get":
+          return json(await service.getDomain({ domain: params.name, claims }), 200, request, allowedOrigins);
+        case "domain.lock": {
+          const body = await readJson(request);
+          return json(await service.setTransferLock({ domain: params.name, locked: body.locked === true, claims }), 200, request, allowedOrigins);
+        }
+        case "domain.dnssec": {
+          const body = await readJson(request);
+          return json(await service.setDnssec({ domain: params.name, enabled: body.enabled === true, claims }), 200, request, allowedOrigins);
+        }
+        case "domain.transferEligibility":
+          return json(await service.getTransferEligibility({ domain: params.name, claims }), 200, request, allowedOrigins);
+        case "domain.authCode":
+          return json(await service.getAuthCode({ domain: params.name, claims }), 200, request, allowedOrigins);
         case "admin.pricePreview": {
           const body = await readJson(request);
           return json({ ok: true, preview: service.previewPrice({ costUsd: body.costUsd, fx: body.fx || null, claims }) }, 200, request, allowedOrigins);
